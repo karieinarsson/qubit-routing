@@ -1,2 +1,2 @@
 # qubit-routing
-Qubit routing using a modified DDQN
+Making efficient qubit routing using a modified DDQN
