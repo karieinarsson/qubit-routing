@@ -15,10 +15,10 @@ from stable_baselines3.common.torch_layers import (
     FlattenExtractor,
     create_mlp,
 )
-from dqn.torch_layers import CustomCNN
 from stable_baselines3.common.type_aliases import Schedule
 from stable_baselines3.common.policies import register_policy
 
+from dqn.torch_layers import CustomCNN
 
 class CustomCnnPolicy(DQNPolicy):
     """
@@ -113,5 +113,3 @@ class CustomCnnPolicy(DQNPolicy):
             actions[idx] = action_set[np.argmax(value)]
             
         return actions, state
-
-

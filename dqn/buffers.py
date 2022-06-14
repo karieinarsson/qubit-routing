@@ -11,12 +11,13 @@ from stable_baselines3.common.type_aliases import (
     DictRolloutBufferSamples,
     RolloutBufferSamples,
 )
+from stable_baselines3.common.vec_env import VecNormalize
+from stable_baselines3.common.buffers import BaseBuffer
+
 from dqn.type_aliases import (
     CustomDictReplayBufferSamples,
     CustomReplayBufferSamples,
 )
-from stable_baselines3.common.vec_env import VecNormalize
-from stable_baselines3.common.buffers import BaseBuffer
 
 try:
     # Check memory used by replay buffer when possible
@@ -76,7 +77,7 @@ class CustomReplayBuffer(BaseBuffer):
         self.timeouts = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
 
         if psutil is not None:
-            total_memory_usage = self.observations.nbytes + self.actions.nbytes + self.rewards.nbytes + self.dones.nbytes
+            total_memory_usage = self.observations.nbytes + self.rewards.nbytes + self.next_observations.nbytes
 
             if self.next_observations is not None:
                 total_memory_usage += self.next_observations.nbytes

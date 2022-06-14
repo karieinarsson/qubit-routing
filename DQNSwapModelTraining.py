@@ -18,7 +18,6 @@ from stable_baselines3.common.callbacks import EvalCallback
 from dqn.evaluation import evaluate_policy
 
 from dqn.policies import CustomCnnPolicy
-from dqn.swap_vec_env import SwapVecEnv
 from dqn.dqn import CustomDQN as DQN
 
 #env variables
@@ -121,44 +120,3 @@ print(f"Mean reward random: {np.mean(rewards)}")
 mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=n_eval_episodes)
 
 print(f"Mean reward model: {mean_reward}")
-
-write_text=open(f"logdir/{model_name}_{len(os.listdir(logdir))}/{model_name}"+".txt","w+")
-write_text.write(
-    f"Model: {model_name} \r\n"+
-    "\r\n"+
-    
-    "Environment Variables \r\n"+
-    f"depth = {depth}\r\n"+
-    f"rows = {rows}\r\n"+
-    f"cols = {cols}\r\n"+
-    f"max_swaps_per_time_step = {max_swaps_per_time_step}\r\n"+
-    "\r\n"+
-    
-    "Model Variables \r\n"+
-    f"learning_starts = {learning_starts}\r\n"+
-    f"verbose = {verbose}\r\n"+
-    f"exploration_fraction = {exploration_fraction}\r\n"+
-    f"exploration_initial_eps = {exploration_initial_eps}\r\n"+
-    f"exploration_final_eps = {exploration_final_eps}\r\n"+
-    f"batch_size = {batch_size}\r\n"+
-    f"learning_rate = {learning_rate}\r\n"+
-    f"target_update_interval = {target_update_interval}\r\n"+
-    f"tau = {tau}\r\n"+
-    f"gamma = {gamma}\r\n"+
-    f"train_freq = {train_freq}\r\n"+
-    "\r\n"+
-    
-    "Training Variables \r\n"+
-    f"total_timesteps = {total_timesteps}\r\n"+
-    f"log_interval = {log_interval}\r\n"+
-    "\r\n"+
-    
-    "Evaluation \r\n"+
-    f"n_eval_episodes = {n_eval_episodes}\r\n"+
-    "\r\n"+
-    
-    "Results \r\n"+
-    f"np.mean(rewards) = {np.mean(rewards)}\r\n"+
-    f"mean_reward = {mean_reward}\r\n")
-
-write_text.close()

@@ -468,21 +468,11 @@ class CustomDQN(OffPolicyAlgorithm):
         if env.num_envs > 1:
             assert train_freq.unit == TrainFrequencyUnit.STEP, "You must use only one env when doing episodic training."
 
-        # Vectorize action noise if needed
-        if action_noise is not None and env.num_envs > 1 and not isinstance(action_noise, VectorizedActionNoise):
-            action_noise = VectorizedActionNoise(action_noise, env.num_envs)
-
-        if self.use_sde:
-            self.actor.reset_noise(env.num_envs)
-
         callback.on_rollout_start()
         continue_training = True
 
         while should_collect_more_steps(train_freq, num_collected_steps, num_collected_episodes):
-            if self.use_sde and self.sde_sample_freq > 0 and num_collected_steps % self.sde_sample_freq == 0:
-                # Sample a new noise matrix
-                self.actor.reset_noise(env.num_envs)
-
+            
             # Select action randomly or according to policy
             actions = self._sample_action(learning_starts, env)
 
@@ -517,10 +507,6 @@ class CustomDQN(OffPolicyAlgorithm):
                     # Update stats
                     num_collected_episodes += 1
                     self._episode_num += 1
-
-                    if action_noise is not None:
-                        kwargs = dict(indices=[idx]) if env.num_envs > 1 else {}
-                        action_noise.reset(**kwargs)
 
                     # Log training infos
                     if log_interval is not None and self.num_timesteps % log_interval == 0 and self.num_timesteps < self.learning_starts:
