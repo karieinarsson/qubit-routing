@@ -40,18 +40,41 @@ PURPLE  = (50.2,0,50.2)
 LIME    = (191,255,0)
 
 def main():
-    env = swap_environment(10,3,3)
-    check_env(env)
+    env = swap_environment(10,2,2)
+    
+    print((np.array([[0,0,0,1],[0,0,1,0],[0,0,0,0],[0,0,0,0]]) == env.timestep_layer_to_connectivity_matrix(np.array([1,2,2,1]))).all())
+    print((np.array([[0,1,1,0],[0,0,0,1],[0,0,0,1],[0,0,0,0]]) == env.architecture).all())
+    print(env.is_executable_state(np.array([[2,1,2,1]])))
+    print(not env.is_executable_state(np.array([[0,1,1,0]])))
+    print(len(env.possible_actions) == 7)
+    print((env.gen_links() == np.array([[0,1],[0,2],[1,3],[2,3]])).all())
+    env2 = swap_environment(1,3,3)
+    print(len(env2.possible_actions) == 131)
+    env3 = swap_environment(1,4,3)
+    print(len(env3.possible_actions))
+    #check_env(env)
     
 
 #Our environment
 class swap_environment(Env):
-    def __init__(self, depth: int, rows: int, cols: int, 
-            max_swaps_per_time_step: int = -1, timeout: int = 200) -> None:
+    def __init__(self, 
+            depth: int, 
+            rows: int, 
+            cols: int, 
+            max_swaps_per_time_step: int = None, 
+            timeout: int = 200,
+            n_qubits: int = None,
+            links: List[Tuple[int]] = None
+        ) -> None:
         self.depth = depth
         self.rows = rows
         self.cols = cols
-        if max_swaps_per_time_step < 0 or max_swaps_per_time_step > np.floor(self.rows * self.cols/2):
+        
+        self.n_qubits = self.rows * self.cols if n_qubits is None else n_qubits
+        self.links = self.gen_links() if links is None else links
+        self.architecture = self.get_adjencency_matrix(self.links)
+
+        if max_swaps_per_time_step is None:
             self.max_swaps_per_time_step = np.floor(self.rows * self.cols/2)
         else:
             self.max_swaps_per_time_step = max_swaps_per_time_step
@@ -311,25 +334,63 @@ class swap_environment(Env):
         self.max_episode_steps = self.timeout
         return self.state
 
-    def is_executable_state(self, state: State) -> bool:
+    def gen_links(self) -> List[List[int]]:
+        quantum_arch = np.arange(self.rows*self.cols)
+        links = []
+        for node in quantum_arch:
+            if node + 1 < quantum_arch.size and node % self.cols != self.cols-1:
+                links.append((node, node+1))
+            if node + self.cols < quantum_arch.size:
+                links.append((node, node+self.cols))
+        return np.array(links)
+
+
+    def get_adjencency_matrix(self, links: List[List[int]]) -> Matrix:
+        adjencency_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype = int)
+        for q0, q1 in links:
+            adjencency_matrix[q0][q1] = 1
+        return adjencency_matrix
+
+    def timestep_layer_to_connectivity_matrix(self, timestep_layer: FlattenedTimeStepLayer) -> Matrix:
+        connectivity_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype = int)
+        for gate in range(1, np.max(timestep_layer)+1):
+            q0, q1 = np.where(timestep_layer == gate)[0]
+            connectivity_matrix[q0][q1] = 1
+        return connectivity_matrix
+        
+
+    def is_executable_state(self, state: FlattenedState) -> bool:
         """
         Input: 
             - state: A flattened state of gates
         
         Output: Bool which is True if all gates are executable in the first timestep
         """
-        for pos in range(self.rows * self.cols):
-            gate = state[0][pos]
-            if gate > 0:
-                neighbors = [state[0][pos+i] if pos+i >= 0 and pos+i < self.rows*self.cols 
-                        and not (pos%self.rows == 0 and i == -1) 
-                        and not (pos%self.rows == self.rows-1 and i == 1) else 0 
-                        for i in [1, -1, self.rows, -self.rows]]
-                if not gate in neighbors:
-                    return False
-        return True
+        connectivity_matrix = self.timestep_layer_to_connectivity_matrix(state[0])
+        if (connectivity_matrix & self.architecture == connectivity_matrix).all():
+            return True
+        return False
+
+    def gate_to_permutation_matrix(self, 
+            permutaion_matrix: PermutationMatrix, 
+            gate: List[int]
+        ) -> PermutationMatrix:
+        permutaion_matrix = copy.deepcopy(permutaion_matrix)
+        q0, q1 = gate
+
+        permutaion_matrix[q0][q0] = 0
+        permutaion_matrix[q1][q1] = 0
+        permutaion_matrix[q0][q1] = 1
+        permutaion_matrix[q1][q0] = 1
+
+        return permutaion_matrix
+
     
-    def get_possible_actions(self, iterations: int = None, used: List[int] = None) -> List[PermutationMatrix]:
+    def get_possible_actions(self, 
+            iterations: int = None,
+            architecture: Matrix = None,
+            permutaion_matrix: PermutationMatrix = None
+        ) -> List[PermutationMatrix]:
         """
         Input: 
             - iterations: The current iteration of the recurtion
@@ -338,49 +399,32 @@ class swap_environment(Env):
         Output: List of permutation matrices corresponding to all possible actions
                 for the current size of quantum circuit
         """
-        if used is None:
-            used = []
-
-        if iterations is None or iterations == -1:
+        if iterations is None:
             iterations = self.max_swaps_per_time_step
-        m = np.arange(self.rows*self.cols)
-        possible_actions = []
-        for pos in m:
-            if not pos in used:
-                neighbors = [m[pos+i] if pos+i >= 0 and pos+i < self.rows*self.cols 
-                        and not m[pos+i] in used
-                        and not (pos%self.rows == 0 and i == -1) 
-                        and not (pos%self.rows == self.rows-1 and i == 1) else -1 
-                        for i in [1, -1, self.cols, -self.cols]]
-                for target in neighbors:
-                    if target != -1:
-                        a = [pos, target]
-                        a.sort()
-                        if not [a] in possible_actions:
-                            used_tmp = used.copy()
-                            possible_actions.append([a])
-                            used_tmp.append(pos)
-                            used_tmp.append(target)
-                            if iterations >= 1: 
-                                for action in self.get_possible_actions(iterations = iterations-1, used = used_tmp):
-                                    action.append(a)
-                                    action.sort()
-                                    if not action in possible_actions:
-                                        possible_actions.append(action)
 
-        if iterations == self.max_swaps_per_time_step:
-            return_possible_actions = np.zeros((len(possible_actions)+1, self.rows*self.cols, self.rows*self.cols))
-            return_possible_actions[0] = np.identity(self.rows*self.cols)
-            for idx, action in enumerate(possible_actions):
-                m = np.identity(self.rows*self.cols)
-                for swap in action:
-                    pos1, pos2 = swap
-                    m[pos1][pos1] = 0
-                    m[pos2][pos2] = 0
-                    m[pos1][pos2] = 1
-                    m[pos2][pos1] = 1
-                return_possible_actions[idx+1] = m
-            return return_possible_actions
+        if architecture is None:
+            architecture = self.architecture
+
+        if permutaion_matrix is None:
+            permutaion_matrix = np.identity(self.n_qubits, dtype = int)
+        
+        possible_actions = [permutaion_matrix]
+        
+        for row in range(self.n_qubits):
+            for col in range(self.n_qubits):
+                if architecture[row][col] == 0:
+                    continue
+                modified_architecture = copy.deepcopy(architecture)
+                modified_architecture[row] = 0
+                modified_architecture[col] = 0
+                modified_architecture[:,col] = 0
+                modified_architecture[:,row] = 0
+                modified_permutaion_matrix = self.gate_to_permutation_matrix(permutaion_matrix, [row, col])
+                for action in self.get_possible_actions(iterations-1, modified_architecture, modified_permutaion_matrix):
+                    possible_actions.append(action)
+
+        possible_actions = [tuple(action) for action in possible_actions]
+        possible_actions = np.unique(possible_actions, axis=0)
         
         return possible_actions
 
@@ -500,6 +544,7 @@ class swap_environment(Env):
                 if idx != i:
                     action_tuples.append(tuple((i,idx)))
         return action_tuples
+
 
 if __name__ == '__main__':
     main()
