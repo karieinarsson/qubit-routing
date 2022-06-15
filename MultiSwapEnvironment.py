@@ -353,7 +353,7 @@ class swap_environment(Env):
 
     def timestep_layer_to_connectivity_matrix(self, timestep_layer: FlattenedTimeStepLayer) -> Matrix:
         connectivity_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype = int)
-        for gate in range(1, np.max(timestep_layer)+1):
+        for gate in range(1, int(np.max(timestep_layer))+1):
             q0, q1 = np.where(timestep_layer == gate)[0]
             connectivity_matrix[q0][q1] = 1
         return connectivity_matrix
