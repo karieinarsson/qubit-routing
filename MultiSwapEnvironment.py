@@ -40,20 +40,21 @@ PURPLE  = (50.2,0,50.2)
 LIME    = (191,255,0)
 
 def main():
+    tester()
+
+def tester():
     env = swap_environment(10,2,2)
-    
-    print((np.array([[0,0,0,1],[0,0,1,0],[0,0,0,0],[0,0,0,0]]) == env.timestep_layer_to_connectivity_matrix(np.array([1,2,2,1]))).all())
-    print((np.array([[0,1,1,0],[0,0,0,1],[0,0,0,1],[0,0,0,0]]) == env.architecture).all())
-    print(env.is_executable_state(np.array([[2,1,2,1]])))
-    print(not env.is_executable_state(np.array([[0,1,1,0]])))
-    print(len(env.possible_actions) == 7)
-    print((env.gen_links() == np.array([[0,1],[0,2],[1,3],[2,3]])).all())
+    print("Test1:", (np.array([[0,0,0,1],[0,0,1,0],[0,0,0,0],[0,0,0,0]]) == env.timestep_layer_to_connectivity_matrix(np.array([1,2,2,1]))).all())
+    print("Test2:",(np.array([[0,1,1,0],[0,0,0,1],[0,0,0,1],[0,0,0,0]]) == env.architecture).all())
+    print("Test3:",env.is_executable_state(np.array([[2,1,2,1]])))
+    print("Test4:",not env.is_executable_state(np.array([[0,1,1,0]])))
+    print("Test5:",len(env.possible_actions) == 7)
+    print("Test6:",(env.gen_links() == np.array([[0,1],[0,2],[1,3],[2,3]])).all())
     env2 = swap_environment(1,3,3)
-    print(len(env2.possible_actions) == 131)
-    env3 = swap_environment(1,4,3)
-    print(len(env3.possible_actions))
-    #check_env(env)
-    
+    print("Test7:",len(env2.possible_actions) == 131)
+    check_env(env, warn=False)
+    print("Test8:", True)
+
 
 #Our environment
 class swap_environment(Env):
@@ -113,7 +114,7 @@ class swap_environment(Env):
             done = False
         
         info = {}
-        self.state = self.state.reshape((self.depth, self.rows, self.cols))
+        self.state = self.state.reshape((1, self.depth, self.rows, self.cols, ))
         return self.state, reward, done, info
 
     def render(self, mode = "human", render_list = None) -> bool: 
@@ -329,7 +330,7 @@ class swap_environment(Env):
 
         self.code = np.pad(self.code, ((0,self.depth),(0,0)))
         self.state, self.code = self.code[:self.depth], self.code[self.depth:]
-        self.state = self.state.reshape((self.depth, self.rows, self.cols))
+        self.state = self.state.reshape((1,self.depth, self.rows, self.cols, ))
 
         self.max_episode_steps = self.timeout
         return self.state
@@ -353,7 +354,7 @@ class swap_environment(Env):
 
     def timestep_layer_to_connectivity_matrix(self, timestep_layer: FlattenedTimeStepLayer) -> Matrix:
         connectivity_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype = int)
-        for gate in range(1, int(np.max(timestep_layer))+1):
+        for gate in np.arange(1, int(np.max(timestep_layer))+1):
             q0, q1 = np.where(timestep_layer == gate)[0]
             connectivity_matrix[q0][q1] = 1
         return connectivity_matrix
