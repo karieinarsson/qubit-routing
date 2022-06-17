@@ -54,7 +54,7 @@ def tester():
     env2 = swap_environment(1,3,3)
     print("Test7:",len(env2.possible_actions) == 131)
     mtx = np.array([[1,0,0,1,0,0,0,0,0]])
-    par, non_par = env2.pruning(mtx)
+    par = env2.prune_action_space(mtx)
     success = True
     print("Test8: ", end="")
     for a in par:
@@ -69,7 +69,7 @@ def tester():
     
     success = True
     mtx = np.array([[1,0,1,0,2,2,0,0,0]])
-    par, non_par = env2.pruning(mtx)
+    non_par = env2.prune_action_space(mtx)
     print("Test9: ", end="")
     for a in non_par:
         if (np.matmul(mtx, env2.possible_actions[a]) == mtx).all():
@@ -492,12 +492,18 @@ class swap_environment(Env):
         return -2
 
     def _get_parallell_actions(self, state: FlattenedState) -> List[int]:
+        inverse_identety = np.ones((self.possible_actions.shape), dtype = int)-np.identity(self.n_qubits, dtype=int)
+        action_connectivity = inverse_identety & self.possible_actions
+        
         used = np.where(state[0]>0)
         used_matrix = self.get_used_matrix(used)
         parallell_map = np.sum(used_matrix & action_connectivity, axis=(1,2)) == 0
         return np.where(parallell_map)[0]
 
     def _get_pruned_action_space(self, state: FlattenedState) -> List[int]:
+        inverse_identety = np.ones((self.possible_actions.shape), dtype = int)-np.identity(self.n_qubits, dtype=int)
+        action_connectivity = inverse_identety & self.possible_actions
+        
         inverse_architecture = np.ones((self.possible_actions.shape), dtype = int) - self.architecture
         pruned_filter = inverse_architecture & self.timestep_layer_to_connectivity_matrix(state[0])
         
@@ -515,8 +521,6 @@ class swap_environment(Env):
         Output: List of actions that do not affect any gates in the first timestep
                 of the state
         """
-        inverse_identety = np.ones((self.possible_actions.shape), dtype = int)-np.identity(self.n_qubits, dtype=int)
-        action_connectivity = inverse_identety & self.possible_actions
   
         if self.is_executable_state(state):
             return self._get_parallell_actions(state)
