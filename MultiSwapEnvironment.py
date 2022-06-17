@@ -45,6 +45,7 @@ def main():
 def tester():
     env = swap_environment(10,2,2)
     print("Test1:", (np.array([[0,0,0,1],[0,0,1,0],[0,0,0,0],[0,0,0,0]]) == env.timestep_layer_to_connectivity_matrix(np.array([1,2,2,1]))).all())
+    print("Test1:", (np.array([[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0]]) == env.timestep_layer_to_connectivity_matrix(np.array([0,1,1,0]))).all())
     print("Test2:",(np.array([[0,1,1,0],[0,0,0,1],[0,0,0,1],[0,0,0,0]]) == env.architecture).all())
     print("Test3:",env.is_executable_state(np.array([[2,1,2,1]])))
     print("Test4:",not env.is_executable_state(np.array([[0,1,1,0]])))
@@ -52,8 +53,36 @@ def tester():
     print("Test6:",(env.gen_links() == np.array([[0,1],[0,2],[1,3],[2,3]])).all())
     env2 = swap_environment(1,3,3)
     print("Test7:",len(env2.possible_actions) == 131)
+    mtx = np.array([[1,0,0,1,0,0,0,0,0]])
+    par, non_par = env2.pruning(mtx)
+    success = True
+    print("Test8: ", end="")
+    for a in par:
+        if not (np.matmul(mtx, env2.possible_actions[a]) == mtx).all():
+            print("\n\tFalse")
+            print("Action:", a)
+            print(env.possible_actions[a])
+            print("From:", mtx, "->", np.matmul(mtx, env.possible_actions[a]), "not", mtx, "->", mtx, "\n")
+            success = False
+    if success:
+        print(True)
+    
+    success = True
+    mtx = np.array([[1,0,1,0,2,2,0,0,0]])
+    par, non_par = env2.pruning(mtx)
+    print("Test9: ", end="")
+    for a in non_par:
+        if (np.matmul(mtx, env2.possible_actions[a]) == mtx).all():
+            print("\n\tFalse")
+            print("Action:", a)
+            print(env.possible_actions[a])
+            success = True
+
+    if success:
+        print(True)
+    
     check_env(env, warn=False)
-    print("Test8:", True)
+    print("Environment check:", True)
 
 
 #Our environment
@@ -345,7 +374,6 @@ class swap_environment(Env):
                 links.append((node, node+self.cols))
         return np.array(links)
 
-
     def get_adjencency_matrix(self, links: List[List[int]]) -> Matrix:
         adjencency_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype = int)
         for q0, q1 in links:
@@ -358,7 +386,6 @@ class swap_environment(Env):
             q0, q1 = np.where(timestep_layer == gate)[0]
             connectivity_matrix[q0][q1] = 1
         return connectivity_matrix
-        
 
     def is_executable_state(self, state: FlattenedState) -> bool:
         """
@@ -385,7 +412,6 @@ class swap_environment(Env):
         permutaion_matrix[q1][q0] = 1
 
         return permutaion_matrix
-
     
     def get_possible_actions(self, 
             iterations: int = None,
@@ -458,14 +484,14 @@ class swap_environment(Env):
 
         Output: The immediate reward
         """
-        parallell_actions, _ = self.get_parallell_actions(state)
+        parallell_actions, _ = self.pruning(state)
         if self.is_executable_state(state):
             if action in parallell_actions:
                 return 0
             return -1
         return -2
 
-    def get_parallell_actions(self, state: State) -> Tuple[List[int], List[int]]:
+    def pruning(self, state: FlattenedState) -> Tuple[List[int], List[int]]:
         """
         Input:
             - state: A flattened state of gates
@@ -473,18 +499,32 @@ class swap_environment(Env):
         Output: List of actions that do not affect any gates in the first timestep
                 of the state
         """
-        used_matrix = np.zeros(self.possible_actions.shape)
-        used = np.where(state[0]>0)[0]
-        for i in used:
-            used_matrix[:,i,i] = 1
+        inverse_identety = np.ones((self.possible_actions.shape), dtype = int)-np.identity(self.n_qubits, dtype=int)
+        action_connectivity = inverse_identety & self.possible_actions
         
-        tmp = np.sum(np.bitwise_and(used_matrix.astype(int), self.possible_actions.astype(int)), axis=(1,2)) == len(used)
+        parallell_used = np.where(state[0]>0)
+        parallell_used_matrix = self.get_used_matrix(parallell_used)
+        parallell_map = np.sum(parallell_used_matrix & action_connectivity, axis=(1,2)) == 0
+        parallell_actions = np.where(parallell_map)[0]
 
-        parallell_actions = np.array([i for i, v in enumerate(tmp) if v])
-        non_parallell_actions = np.array([i for i, v in enumerate(tmp) if not v])
+        inverse_architecture = np.ones((self.possible_actions.shape), dtype = int) - self.architecture
+        pruned_filter = inverse_architecture & self.timestep_layer_to_connectivity_matrix(state[0])
+        
+        not_linked_gates = np.squeeze(np.column_stack(np.where(pruned_filter[0]==1)))
+        pruned_select_matrix = self.get_used_matrix(not_linked_gates)
+        pruned_map = np.sum(pruned_select_matrix & action_connectivity, axis=(1,2)) != 0
 
-        return parallell_actions, non_parallell_actions
-    
+        pruned_actions = np.where(pruned_map)[0]
+        
+        return parallell_actions, pruned_actions
+
+    def get_used_matrix(self, used: List[int]):
+        used_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype=int)
+        for qubit in used:
+            used_matrix[qubit] = 1
+            used_matrix[:,qubit] = 1
+        return used_matrix
+
     def processing(self, state: State, preprocessing: bool = True) -> State:
         """
         Input:

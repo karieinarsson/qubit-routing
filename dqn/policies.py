@@ -93,7 +93,7 @@ class CustomCnnPolicy(DQNPolicy):
         for idx, obs in enumerate(observations):
             x, d, r, c = obs.shape
             obs = obs.reshape((d, r*c))
-            parallell_actions, non_parallell_actions = env.envs[0].get_parallell_actions(obs)
+            parallell_actions, non_parallell_actions = env.envs[0].pruning(obs)
             
             if env.envs[0].is_executable_state(obs):
                 action_set = parallell_actions
@@ -103,7 +103,7 @@ class CustomCnnPolicy(DQNPolicy):
                 
             with th.no_grad(): 
                 action = th.Tensor([possible_actions[i] for i in action_set])
-                tensor_obs = th.Tensor(obs).reshape((10,4,))
+                tensor_obs = th.Tensor(obs).reshape((d,r*c,))
                 tensor_obs = th.matmul(tensor_obs, action)
                 value = self._predict(tensor_obs.reshape((len(action),x,d,r,c)), deterministic=deterministic)
 
