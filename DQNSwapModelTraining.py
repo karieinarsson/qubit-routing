@@ -22,8 +22,8 @@ from dqn.dqn import CustomDQN as DQN
 
 #env variables
 depth = 10
-rows = 2
-cols = 2
+rows = 3
+cols = 3
 max_swaps_per_time_step = -1
 
 #model variables (previously 2e4)
@@ -40,7 +40,7 @@ gamma = 0.5
 train_freq = 4
 
 #training variables (previously 1e5)
-total_timesteps = int(2e5)
+total_timesteps = int(7e4)
 log_interval = 4
 
 #evaluation
