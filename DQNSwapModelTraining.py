@@ -40,7 +40,7 @@ gamma = 0.5
 train_freq = 4
 
 #training variables (previously 1e5)
-total_timesteps = int(1e5)
+total_timesteps = int(7e4)
 log_interval = 4
 
 #evaluation
@@ -115,8 +115,3 @@ while episode < n_eval_episodes:
         episode += 1
         env.reset()
 
-print(f"Mean reward random: {np.mean(rewards)}")
-
-mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=n_eval_episodes)
-
-print(f"Mean reward model: {mean_reward}")

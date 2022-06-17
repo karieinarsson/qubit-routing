@@ -484,8 +484,8 @@ class swap_environment(Env):
 
         Output: The immediate reward
         """
-        parallell_actions, _ = self.pruning(state)
         if self.is_executable_state(state):
+            parallell_actions = self.pruning(state)
             if action in parallell_actions:
                 return 0
             return -1
@@ -501,22 +501,22 @@ class swap_environment(Env):
         """
         inverse_identety = np.ones((self.possible_actions.shape), dtype = int)-np.identity(self.n_qubits, dtype=int)
         action_connectivity = inverse_identety & self.possible_actions
-        
-        parallell_used = np.where(state[0]>0)
-        parallell_used_matrix = self.get_used_matrix(parallell_used)
-        parallell_map = np.sum(parallell_used_matrix & action_connectivity, axis=(1,2)) == 0
-        parallell_actions = np.where(parallell_map)[0]
+  
+        if self.is_executable_state(state):
+            used = np.where(state[0]>0)
+            used_matrix = self.get_used_matrix(used)
+            parallell_map = np.sum(used_matrix & action_connectivity, axis=(1,2)) == 0
+            return np.where(parallell_map)[0]
 
-        inverse_architecture = np.ones((self.possible_actions.shape), dtype = int) - self.architecture
-        pruned_filter = inverse_architecture & self.timestep_layer_to_connectivity_matrix(state[0])
-        
-        not_linked_gates = np.squeeze(np.column_stack(np.where(pruned_filter[0]==1)))
-        pruned_select_matrix = self.get_used_matrix(not_linked_gates)
-        pruned_map = np.sum(pruned_select_matrix & action_connectivity, axis=(1,2)) != 0
+        else:
+            inverse_architecture = np.ones((self.possible_actions.shape), dtype = int) - self.architecture
+            pruned_filter = inverse_architecture & self.timestep_layer_to_connectivity_matrix(state[0])
+            
+            not_linked_gates = np.squeeze(np.column_stack(np.where(pruned_filter[0]==1)))
+            pruned_select_matrix = self.get_used_matrix(not_linked_gates)
+            pruned_map = np.sum(pruned_select_matrix & action_connectivity, axis=(1,2)) != 0
 
-        pruned_actions = np.where(pruned_map)[0]
-        
-        return parallell_actions, pruned_actions
+            return np.where(pruned_map)[0]
 
     def get_used_matrix(self, used: List[int]):
         used_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype=int)
