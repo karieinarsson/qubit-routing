@@ -485,13 +485,29 @@ class swap_environment(Env):
         Output: The immediate reward
         """
         if self.is_executable_state(state):
-            parallell_actions = self.pruning(state)
+            parallell_actions = self.prune_action_space(state)
             if action in parallell_actions:
                 return 0
             return -1
         return -2
 
-    def pruning(self, state: FlattenedState) -> Tuple[List[int], List[int]]:
+    def _get_parallell_actions(self, state: FlattenedState) -> List[int]:
+        used = np.where(state[0]>0)
+        used_matrix = self.get_used_matrix(used)
+        parallell_map = np.sum(used_matrix & action_connectivity, axis=(1,2)) == 0
+        return np.where(parallell_map)[0]
+
+    def _get_pruned_action_space(self, state: FlattenedState) -> List[int]:
+        inverse_architecture = np.ones((self.possible_actions.shape), dtype = int) - self.architecture
+        pruned_filter = inverse_architecture & self.timestep_layer_to_connectivity_matrix(state[0])
+        
+        not_linked_gates = np.squeeze(np.column_stack(np.where(pruned_filter[0]==1)))
+        pruned_select_matrix = self.get_used_matrix(not_linked_gates)
+        pruned_map = np.sum(pruned_select_matrix & action_connectivity, axis=(1,2)) != 0
+
+        return np.where(pruned_map)[0]
+
+    def prune_action_space(self, state: FlattenedState) -> List[int]:
         """
         Input:
             - state: A flattened state of gates
@@ -503,20 +519,9 @@ class swap_environment(Env):
         action_connectivity = inverse_identety & self.possible_actions
   
         if self.is_executable_state(state):
-            used = np.where(state[0]>0)
-            used_matrix = self.get_used_matrix(used)
-            parallell_map = np.sum(used_matrix & action_connectivity, axis=(1,2)) == 0
-            return np.where(parallell_map)[0]
-
+            return self._get_parallell_actions(state)
         else:
-            inverse_architecture = np.ones((self.possible_actions.shape), dtype = int) - self.architecture
-            pruned_filter = inverse_architecture & self.timestep_layer_to_connectivity_matrix(state[0])
-            
-            not_linked_gates = np.squeeze(np.column_stack(np.where(pruned_filter[0]==1)))
-            pruned_select_matrix = self.get_used_matrix(not_linked_gates)
-            pruned_map = np.sum(pruned_select_matrix & action_connectivity, axis=(1,2)) != 0
-
-            return np.where(pruned_map)[0]
+            return self._get_pruned_action_space(state)
 
     def get_used_matrix(self, used: List[int]):
         used_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype=int)

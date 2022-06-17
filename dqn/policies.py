@@ -93,7 +93,7 @@ class CustomCnnPolicy(DQNPolicy):
         for idx, obs in enumerate(observations):
             x, d, r, c = obs.shape
             obs = obs.reshape((d, r*c))
-            action_set = env.envs[0].pruning(obs)
+            action_set = env.envs[0].prune_action_space(obs)
                 
             with th.no_grad(): 
                 action = th.Tensor(np.arrar([possible_actions[i] for i in action_set]))
