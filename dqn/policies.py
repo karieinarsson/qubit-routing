@@ -96,11 +96,7 @@ class CustomCnnPolicy(DQNPolicy):
             action_set = env.envs[0].prune_action_space(obs)
                 
             with th.no_grad(): 
-<<<<<<< HEAD
-                action = th.Tensor([possible_actions[i] for i in action_set])
-=======
                 action = th.Tensor(np.array([possible_actions[i] for i in action_set]))
->>>>>>> 31df2f9b3afc711578dd9762c068dab8de0d3dad
                 tensor_obs = th.Tensor(obs).reshape((d,r*c,))
                 tensor_obs = th.matmul(tensor_obs, action)
                 value = self._predict(tensor_obs.reshape((len(action),x,d,r,c)), deterministic=deterministic)
