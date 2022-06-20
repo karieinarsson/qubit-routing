@@ -69,7 +69,7 @@ eval_callback = EvalCallback(
 
 # Defining agent name
 model_dir = "models/"
-model_name = f"DQNModel({depth},{rows},{cols})"
+model_name = f"model-{depth}-{rows}-{cols})"
 logdir="logdir/"
 
 # Intantiate the agent
@@ -115,8 +115,3 @@ while episode < n_eval_episodes:
         episode += 1
         env.reset()
 
-print(f"Mean reward random: {np.mean(rewards)}")
-
-mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=n_eval_episodes)
-
-print(f"Mean reward model: {mean_reward}")
