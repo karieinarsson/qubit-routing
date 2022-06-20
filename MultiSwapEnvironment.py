@@ -51,11 +51,20 @@ class swap_environment(Env):
             depth: int, 
             rows: int, 
             cols: int, 
-            max_swaps_per_time_step: int = None, 
             timeout: int = 200,
             n_qubits: int = None,
             links: List[Tuple[int]] = None
         ) -> None:
+        """
+        :param: depth: depth of code
+        :param: rows: number of rows in architecture
+        :param: cols: number of cols in architecture
+        :param: timeout: (optional) max steps per episode before fail
+        :param: n_qubits: (optional) number of qubits in architecture
+        :param: links: (optional) list of links between qubits in architecture
+        
+        :return: returns nothing
+        """
         self.depth = depth
         self.rows = rows
         self.cols = cols
@@ -64,10 +73,7 @@ class swap_environment(Env):
         self.links = self.__gen_links() if links is None else links
         self.architecture = self.__get_adjencency_matrix(self.links)
 
-        if max_swaps_per_time_step is None:
-            self.max_swaps_per_time_step = np.floor(self.rows * self.cols/2)
-        else:
-            self.max_swaps_per_time_step = max_swaps_per_time_step
+        self.max_swaps_per_time_step = np.floor(self.rows * self.cols/2)
         self.timeout = timeout
         #array of possible actions
         self.possible_actions = self.__get_possible_actions()
@@ -84,6 +90,11 @@ class swap_environment(Env):
         self.isopen = True
     
     def step(self, action: int) -> Tuple[List[int], int, bool, 'info']:
+        """
+        :param: action: the int reprensentation of an action
+        
+        :return: returns state after action, reward of the action, bool that indicates if the episode if done and info
+        """
         self.state = self.state.reshape((self.depth, self.rows*self.cols))
         self.max_episode_steps -= 1
         swap_matrix = self.possible_actions[action]
@@ -311,6 +322,11 @@ class swap_environment(Env):
         return self.isopen
 
     def reset(self, code: State = None) -> State:
+        """
+        :param: code: (optional) code to reset the state to
+        
+        :return: returns the state
+        """
         self.max_layers = self.depth
         if code is None:
             self.code = self.processing(self.__make_code().reshape((self.depth, self.rows * self.cols)), preprocessing = True)
@@ -324,20 +340,25 @@ class swap_environment(Env):
         self.max_episode_steps = self.timeout
         return self.state
 
-    def tester(self):
+    def tester(self) -> None:
+        """
+        Tests functions on the class and prints True if it worked and False if not
+        
+        :return: returns nothing
+        """
         env = swap_environment(10,2,2)
         print("Test1:", (np.array([[0,0,0,1],[0,0,1,0],[0,0,0,0],[0,0,0,0]]) == env.__timestep_layer_to_connectivity_matrix(np.array([1,2,2,1]))).all())
-        print("Test1:", (np.array([[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0]]) == env.__timestep_layer_to_connectivity_matrix(np.array([0,1,1,0]))).all())
-        print("Test2:",(np.array([[0,1,1,0],[0,0,0,1],[0,0,0,1],[0,0,0,0]]) == env.architecture).all())
-        print("Test3:",env.is_executable_state(np.array([[2,1,2,1]])))
-        print("Test4:",not env.is_executable_state(np.array([[0,1,1,0]])))
-        print("Test5:",len(env.possible_actions) == 7)
+        print("Test2:", (np.array([[0,0,0,0],[0,0,1,0],[0,0,0,0],[0,0,0,0]]) == env.__timestep_layer_to_connectivity_matrix(np.array([0,1,1,0]))).all())
+        print("Test3:",(np.array([[0,1,1,0],[0,0,0,1],[0,0,0,1],[0,0,0,0]]) == env.architecture).all())
+        print("Test4:",env.is_executable_state(np.array([[2,1,2,1]])))
+        print("Test5:",not env.is_executable_state(np.array([[0,1,1,0]])))
+        print("Test6:",len(env.possible_actions) == 7)
         env2 = swap_environment(1,3,3)
-        print("Test6:",len(env2.possible_actions) == 131)
+        print("Test7:",len(env2.possible_actions) == 131)
         mtx = np.array([[1,0,0,1,0,0,0,0,0]])
         par = env2.prune_action_space(mtx)
         success = True
-        print("Test7: ", end="")
+        print("Test8: ", end="")
         for a in par:
             if not (np.matmul(mtx, env2.possible_actions[a]) == mtx).all():
                 print("\n\tFalse")
@@ -350,7 +371,7 @@ class swap_environment(Env):
         success = True
         mtx = np.array([[1,0,1,0,2,2,0,0,0]])
         non_par = env2.prune_action_space(mtx)
-        print("Test8: ", end="")
+        print("Test9: ", end="")
         for a in non_par:
             if (np.matmul(mtx, env2.possible_actions[a]) == mtx).all():
                 print("\n\tFalse")
@@ -363,6 +384,11 @@ class swap_environment(Env):
         print("Environment check:", True)
     
     def __gen_links(self) -> List[List[int]]:
+        """
+        Generates links for a square like architecture with links up, down, left and right
+        
+        :return: returns list of links
+        """
         quantum_arch = np.arange(self.rows*self.cols)
         links = []
         for node in quantum_arch:
@@ -373,12 +399,22 @@ class swap_environment(Env):
         return np.array(links)
 
     def __get_adjencency_matrix(self, links: List[List[int]]) -> Matrix:
+        """
+        :param: links: list of links
+        
+        :return: returns an adjencency matrix
+        """
         adjencency_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype = int)
         for q0, q1 in links:
             adjencency_matrix[q0][q1] = 1
         return adjencency_matrix
 
     def __timestep_layer_to_connectivity_matrix(self, timestep_layer: FlattenedTimeStepLayer) -> Matrix:
+        """
+        :param: timestep_layer: flattned timestep layer
+        
+        :return: returns connectivity matrix for the gates in the timestep layer
+        """
         connectivity_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype = int)
         for gate in np.arange(1, int(np.max(timestep_layer))+1):
             q0, q1 = np.where(timestep_layer == gate)[0]
@@ -387,10 +423,9 @@ class swap_environment(Env):
 
     def is_executable_state(self, state: FlattenedState) -> bool:
         """
-        Input: 
-            - state: A flattened state of gates
+        :param: state: A flattened state of gates
         
-        Output: Bool which is True if all gates are executable in the first timestep
+        :return: Bool which is True if all gates are executable in the first timestep layer
         """
         connectivity_matrix = self.__timestep_layer_to_connectivity_matrix(state[0])
         if (connectivity_matrix & self.architecture == connectivity_matrix).all():
@@ -401,6 +436,12 @@ class swap_environment(Env):
             permutaion_matrix: PermutationMatrix, 
             gate: List[int]
         ) -> PermutationMatrix:
+        """
+        :param: permutaion_matrix: permutation matrix
+        :param: gate: a list of the start qubit and target qubit of the gate
+        
+        :return: returns a permutaion matrix with the gate link included
+        """
         permutaion_matrix = copy.deepcopy(permutaion_matrix)
         q0, q1 = gate
 
@@ -417,12 +458,11 @@ class swap_environment(Env):
             permutaion_matrix: PermutationMatrix = None
         ) -> List[PermutationMatrix]:
         """
-        Input: 
-            - iterations: The current iteration of the recurtion
-            - used: What qubits have been used for gates
+        :param: iterations: (used for recursion) The current iteration of the recurtion
+        :param: architecture: (used for recurision) a modified architecture that removes links from and to used qubits
+        :param: permutaion_matrix: (used for recursion) a permutaion matrix that could include swaps
 
-        Output: List of permutation matrices corresponding to all possible actions
-                for the current size of quantum circuit
+        :return: List of permutation matrices corresponding to all possible actions for the current architecture
         """
         if iterations is None:
             iterations = self.max_swaps_per_time_step
@@ -455,7 +495,7 @@ class swap_environment(Env):
 
     def __make_state_slice(self) -> FlattenedTimeStepLayer:
         """
-        Output: Flattened timestep layer of random gates
+        :return: Flattened timestep layer of random gates
         """
         max_gates = math.floor(self.rows*self.cols/2)
         state_slice = np.zeros(self.rows*self.cols)
@@ -467,7 +507,7 @@ class swap_environment(Env):
 
     def __make_code(self) -> State:
         """
-        Output: State composed of random timestep layers with random gates
+        :return: State composed of random timestep layers with random gates
         """
         state = np.zeros((self.max_layers, self.rows, self.cols))
         for i in range(len(state)):
@@ -476,11 +516,10 @@ class swap_environment(Env):
 
     def reward_func(self, state: FlattenedState, action: int) -> int:
         """
-        Input:
-            - state: A flattened state of gates
-            - action: Action
+        :param: state: A flattened state of gates
+        :param: action: Action
 
-        Output: The immediate reward
+        :return: The immediate reward
         """
         if self.is_executable_state(state):
             parallell_actions = self.prune_action_space(state)
@@ -490,6 +529,10 @@ class swap_environment(Env):
         return -2
 
     def __get_parallell_actions(self, state: FlattenedState) -> List[int]:
+        """
+        :param: state: flattened state
+        :return: Returns list of actions
+        """
         inverse_identety = np.ones((self.possible_actions.shape), dtype = int)-np.identity(self.n_qubits, dtype=int)
         action_connectivity = inverse_identety & self.possible_actions
         
@@ -499,6 +542,10 @@ class swap_environment(Env):
         return np.where(parallell_map)[0]
 
     def __get_pruned_action_space(self, state: FlattenedState) -> List[int]:
+        """
+        :param: state: flattened state
+        :return: Returns list of actions
+        """
         inverse_identety = np.ones((self.possible_actions.shape), dtype = int)-np.identity(self.n_qubits, dtype=int)
         action_connectivity = inverse_identety & self.possible_actions
         
@@ -513,19 +560,19 @@ class swap_environment(Env):
 
     def prune_action_space(self, state: FlattenedState) -> List[int]:
         """
-        Input:
-            - state: A flattened state of gates
-
-        Output: List of actions that do not affect any gates in the first timestep
-                of the state
+        :param: state: flattened state
+        :return: Returns list of actions
         """
-  
         if self.is_executable_state(state):
             return self.__get_parallell_actions(state)
         else:
             return self.__get_pruned_action_space(state)
 
     def __get_used_matrix(self, used: List[int]):
+        """
+        :param: used: list of used qubits
+        :return: returns connectivity map with used qubits
+        """
         used_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype=int)
         for qubit in used:
             used_matrix[qubit] = 1
