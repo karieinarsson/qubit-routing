@@ -39,6 +39,20 @@ GREY    = (50.2,50.2,50.2)
 PURPLE  = (50.2,0,50.2)
 LIME    = (191,255,0)
 
+
+color_dict={
+    0:BLACK,
+    1:GREEN,
+    2:BLUE,
+    3:PURPLE,
+    4:YELLOW,
+    5:BROWN,
+    6:PINK,
+    7:GREY,
+    8:PURPLE,
+    9:LIME
+    }
+
 def main():
     env = swap_environment(1,2,2)
     env.tester()
@@ -125,20 +139,7 @@ class swap_environment(Env):
         img7 = num_font.render('7',True,RED)
         img8 = num_font.render('8',True,RED)
         img9 = num_font.render('9',True,RED) 
-        s_img = num_font.render('S',True,BLACK)
-        
-        dict={
-            0:BLACK,
-            1:GREEN,
-            2:BLUE,
-            3:PURPLE,
-            4:YELLOW,
-            5:BROWN,
-            6:PINK,
-            7:GREY,
-            8:PURPLE,
-            9:LIME
-            }
+        s_img = num_font.render('S',True,BLACK)  
 
         num_dict={
                 0:img0,
@@ -152,16 +153,10 @@ class swap_environment(Env):
                 8:img8,
                 9:img9  
                 }
-        
-        num_matrix = []                
-        tmp = 0            
-        for _ in range(self.rows):     
-            tmpm = []              
-            for _ in range(self.cols): 
-                tmpm.append(tmp)       
-                tmp += 1               
-            num_matrix.append(tmpm) 
-
+       
+        #make into one function
+        #num_matrix = func()
+        num_matrix = __create_number_matrix()                
 
         surface = pygame.Surface(self.screen.get_size())
 
@@ -169,6 +164,9 @@ class swap_environment(Env):
          
         #row / col %
 
+        index = 0
+
+        #into func
         for j in range(1,self.cols+1):
             for i in range(1,self.rows+1):
                 pygame.draw.circle(surface,BLACK,((X_START*j),(Y_START*i)),20)
@@ -176,13 +174,12 @@ class swap_environment(Env):
                     pygame.draw.line(surface,BLACK,((X_START*j),(Y_START*i)),((X_START*(j+1)),((Y_START*i))),4)
                 if i < self.cols: 
                     pygame.draw.line(surface,BLACK,((X_START*j),(Y_START*i)),((X_START*j),((Y_START*(i+1)))),4)
-                pygame.draw.circle(surface,dict.get(render_list[0][i-1][j-1]),((X_START*j),(Y_START*i)),15)
+                pygame.draw.circle(surface,color_dict.get(render_list[index][i-1][j-1]),((X_START*j),(Y_START*i)),15)
                 surface.blit(num_dict.get(num_matrix[i-1][j-1]),((X_START*j)-5,(Y_START*i)-5))
 
         self.screen.blit(surface,(0,0))
         pygame.display.flip()
 
-        index = 0
         running = True
 
         while running:
@@ -222,16 +219,16 @@ class swap_environment(Env):
                                             pygame.draw.line(surface,BLACK,((X_START*j),(Y_START*i)),((X_START*(j+1)),((Y_START*i))),4)
                                         if i < self.cols: 
                                             pygame.draw.line(surface,BLACK,((X_START*j),(Y_START*i)),((X_START*j),((Y_START*(i+1)))),4)
-                                        pygame.draw.circle(surface,dict.get(render_list[index][i-1][j-1]),((X_START*j),(Y_START*i)),15)
+                                        pygame.draw.circle(surface,color_dict.get(render_list[index][i-1][j-1]),((X_START*j),(Y_START*i)),15)
                                         surface.blit(num_dict.get(num_matrix[i-1][j-1]),((X_START*j)-5,(Y_START*i)-5))
                             else:
                                 swap_matrix = self.possible_actions[render_list[index]]
 
                                 for j in range(1,self.cols+1):
                                     for i in range(1,self.rows+1):
-                                        pygame.draw.circle(surface,dict.get(render_list[index-1][i-1][j-1]),((X_START*j),(Y_START*i)),15)
+                                        pygame.draw.circle(surface,color_dict.get(render_list[index-1][i-1][j-1]),((X_START*j),(Y_START*i)),15)
                                         surface.blit(num_dict.get(num_matrix[i-1][j-1]),((X_START*j)-5,(Y_START*i)-5))
-                                tuple_list = self.action_render(swap_matrix)
+                                tuple_list = self.__action_render(swap_matrix)
                                    
                                 num_matrix = np.matmul(swap_matrix,np.asarray(num_matrix).reshape(self.rows*self.cols)).reshape((self.rows,self.cols)).tolist()
                                 for i in range(len(num_matrix)): 
@@ -271,7 +268,7 @@ class swap_environment(Env):
                                             pygame.draw.line(surface,BLACK,((X_START*j),(Y_START*i)),((X_START*(j+1)),((Y_START*i))),4)
                                         if i < self.cols: 
                                             pygame.draw.line(surface,BLACK,((X_START*j),(Y_START*i)),((X_START*j),((Y_START*(i+1)))),4)
-                                        pygame.draw.circle(surface,dict.get(render_list[index][i-1][j-1]),((X_START*j),(Y_START*i)),15)
+                                        pygame.draw.circle(surface,color_dict.get(render_list[index][i-1][j-1]),((X_START*j),(Y_START*i)),15)
                                         surface.blit(num_dict.get(num_matrix[i-1][j-1]),((X_START*j)-5,(Y_START*i)-5))
                                  
                             else: 
@@ -279,9 +276,9 @@ class swap_environment(Env):
 
                                 for j in range(1,self.cols+1):
                                     for i in range(1,self.rows+1):
-                                        pygame.draw.circle(surface,dict.get(render_list[index-1][i-1][j-1]),((X_START*j),(Y_START*i)),15)
+                                        pygame.draw.circle(surface,color_dict.get(render_list[index-1][i-1][j-1]),((X_START*j),(Y_START*i)),15)
                                         surface.blit(num_dict.get(num_matrix[i-1][j-1]),((X_START*j)-5,(Y_START*i)-5))
-                                tuple_list = self.action_render(swap_matrix)
+                                tuple_list = self.__action_render(swap_matrix)
                             
                                 num_matrix = np.matmul(np.asarray(num_matrix).reshape(self.rows*self.cols),swap_matrix.T).reshape((self.rows,self.cols)).tolist()
                                 for i in range(len(num_matrix)): 
@@ -575,7 +572,7 @@ class swap_environment(Env):
             return_state = np.pad(return_state, ((0,self.depth-return_state.shape[0]),(0,0)))
         return return_state
 
-    def action_render(self, action_matrix: PermutationMatrix) -> List[Tuple[int, int]]:
+    def __action_render(self, action_matrix: PermutationMatrix) -> List[Tuple[int, int]]:
         """
         Input:
             - action_matrix: PermutationMatrix corresponding to an action
@@ -593,6 +590,27 @@ class swap_environment(Env):
                     action_tuples.append(tuple((i,idx)))
         return action_tuples
 
+    def __create_number_matrix(self):
+        num_matrix = []                
+        tmp = 0            
+        for _ in range(self.rows):     
+            tmpm = []              
+            for _ in range(self.cols): 
+                tmpm.append(tmp)       
+                tmp += 1               
+            num_matrix.append(tmpm) 
+        return num_matrix
+
+    def __draw_architecture(self, num_matrix, surface):
+        for j in range(1,self.cols+1):
+            for i in range(1,self.rows+1):
+                pygame.draw.circle(surface,BLACK,((X_START*j),(Y_START*i)),20)
+                if j < self.rows:
+                    pygame.draw.line(surface,BLACK,((X_START*j),(Y_START*i)),((X_START*(j+1)),((Y_START*i))),4)
+                if i < self.cols: 
+                    pygame.draw.line(surface,BLACK,((X_START*j),(Y_START*i)),((X_START*j),((Y_START*(i+1)))),4)
+                pygame.draw.circle(surface,color_dict.get(render_list[index][i-1][j-1]),((X_START*j),(Y_START*i)),15)
+                surface.blit(num_dict.get(num_matrix[i-1][j-1]),((X_START*j)-5,(Y_START*i)-5))
 
 if __name__ == '__main__':
     main()
