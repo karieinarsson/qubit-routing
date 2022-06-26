@@ -593,11 +593,10 @@ class swap_environment(Env):
 
     def processing(self, state: State, preprocessing: bool = True) -> State:
         """
-        Input:
-            - state: A flattened state of gates
-            - preprocessing: bool that tells if this is used as preprocessing or postprocessing
+        :param: state: A flattened state of gates
+        :param: preprocessing: bool that tells if this is used as preprocessing or postprocessing
         
-        Output: Flattened compressed state
+        :return: Flattened compressed state
         """
         gates = []
         for idx, m in enumerate(state):

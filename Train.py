@@ -76,7 +76,7 @@ def Training(
 
     # Defining agent name
     model_dir = "models/"
-    model_name = f"model-{depth}-{rows}-{cols})"
+    model_name = f"model-{depth}-{rows}-{cols}"
     logdir="logdir/"
 
     # Intantiate the agent
