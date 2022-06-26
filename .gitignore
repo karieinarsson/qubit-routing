@@ -1,2 +1,7 @@
 __pycache__/
+dqn/__pycache__/
+
 logdir/
+
+test.py
+*.pyc
