@@ -340,6 +340,8 @@ class swap_environment(Env):
         self.max_episode_steps = self.timeout
         return self.state
 
+# Tester functions
+
     def tester(self) -> None:
         """
         Tests functions on the class and prints True if it worked and False if not
@@ -383,6 +385,8 @@ class swap_environment(Env):
         check_env(env, warn=False)
         print("Environment check:", True)
     
+# architecture subfunctions
+
     def __gen_links(self) -> List[List[int]]:
         """
         Generates links for a square like architecture with links up, down, left and right
@@ -493,6 +497,8 @@ class swap_environment(Env):
         
         return possible_actions
 
+# code generation
+
     def __make_state_slice(self) -> FlattenedTimeStepLayer:
         """
         :return: Flattened timestep layer of random gates
@@ -514,6 +520,8 @@ class swap_environment(Env):
             state[i] = self.__make_state_slice().reshape((self.rows, self.cols))
         return state
 
+# reward function
+
     def reward_func(self, state: FlattenedState, action: int) -> int:
         """
         :param: state: A flattened state of gates
@@ -527,6 +535,8 @@ class swap_environment(Env):
                 return 0
             return -1
         return -2
+
+# pruning
 
     def __get_parallell_actions(self, state: FlattenedState) -> List[int]:
         """
@@ -579,6 +589,8 @@ class swap_environment(Env):
             used_matrix[:,qubit] = 1
         return used_matrix
 
+# processing
+
     def processing(self, state: State, preprocessing: bool = True) -> State:
         """
         Input:
@@ -622,6 +634,8 @@ class swap_environment(Env):
             return_state = np.pad(return_state, ((0,self.depth-return_state.shape[0]),(0,0)))
         return return_state
 
+# render functions
+
     def action_render(self, action_matrix: PermutationMatrix) -> List[Tuple[int, int]]:
         """
         Input:
@@ -639,7 +653,6 @@ class swap_environment(Env):
                 if idx != i:
                     action_tuples.append(tuple((i,idx)))
         return action_tuples
-
 
 if __name__ == '__main__':
     main()
