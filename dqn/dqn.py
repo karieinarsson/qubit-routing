@@ -288,9 +288,7 @@ class CustomDQN(OffPolicyAlgorithm):
             (used in recurrent policies)
         """
         if not deterministic and np.random.rand() < self.exploration_rate:
-            #n_batch = observation.shape[0]
             action = self._sample_exploration_action(observation, env)
-            #action = np.array([self.action_space.sample() for _ in range(n_batch)])
         else:
             action, state = self.policy.predict(observation, env, state, episode_start, deterministic)
         return action, state
@@ -356,7 +354,7 @@ class CustomDQN(OffPolicyAlgorithm):
     
     def _sample_exploration_action(self, obs, env):
         n, x, d, r, c = obs.shape
-        action_sets = np.array([env.envs[0].prune_action_space(obs[i].reshape((d, r*c))) for i in range(n)])
+        action_sets = np.array([env.envs[0].prune_action_space(obs[i].reshape((d, r*c)))[0] for i in range(n)])
         actions = np.array([np.random.choice(action_sets[i]) for i in range(n)])
         return actions
 

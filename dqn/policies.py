@@ -93,13 +93,12 @@ class CustomCnnPolicy(DQNPolicy):
         for idx, obs in enumerate(observations):
             x, d, r, c = obs.shape
             obs = obs.reshape((d, r*c))
-            action_set = env.envs[0].prune_action_space(obs)
-                
+            action_set, obs = env.envs[0].prune_action_space(obs)
             with th.no_grad(): 
-                action = th.Tensor(np.array([possible_actions[i] for i in action_set]))
-                tensor_obs = th.Tensor(obs).reshape((d,r*c,))
-                tensor_obs = th.matmul(tensor_obs, action)
-                value = self._predict(tensor_obs.reshape((len(action),x,d,r,c)), deterministic=deterministic)
+                #action = th.Tensor(np.array([possible_actions[i] for i in action_set]))
+                tensor_obs = th.Tensor(obs)
+                #tensor_obs = th.matmul(tensor_obs, action)
+                value = self._predict(tensor_obs.reshape((len(obs),x,d,r,c)), deterministic=deterministic)
 
             for i, o in enumerate(np.array(tensor_obs)):
                 value[i] += env.envs[0].reward_func(o, action_set[i])

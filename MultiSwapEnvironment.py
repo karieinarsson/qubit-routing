@@ -531,7 +531,7 @@ class swap_environment(Env):
         :return: The immediate reward
         """
         if self.is_executable_state(state):
-            parallell_actions = self.prune_action_space(state)
+            parallell_actions, _ = self.prune_action_space(state)
             if action in parallell_actions:
                 return 0
             return -1
@@ -549,7 +549,6 @@ class swap_environment(Env):
             used_matrix[qubit] = 1
             used_matrix[:,qubit] = 1
         return used_matrix
-
 
     def __prun_para_actions(self, state: FlattenedState) -> List[int]:
         """
@@ -581,14 +580,13 @@ class swap_environment(Env):
 
         return np.where(pruned_map)[0]
 
-    def __prun_exe_state(self, state: FlattenedState, actions, actions_perm: List[PermutationMatrix]) -> Tuple[List[int], List[FlattenedState]]:
-        state_prim = np.matmul(state, actions_perm)
+    def __prun_exe_state(self, state: FlattenedState, actions, state_prim: List[FlattenedState]) -> Tuple[List[int], List[FlattenedState]]:
         is_exe_filter = np.array(list(map(self.is_executable_state, state_prim)))
         if (is_exe_filter == True).any():
-            return np.where(is_exe_filter)[0]#, np.array(list(compress(is_exe_filter, state_prim)))
+            actions = np.where(is_exe_filter)[0] 
+            return actions, np.apply_along_axis(lambda a_1d: a_1d[actions], 0, state_prim)
         else:
-            return actions#, state_prim
-
+            return actions, state_prim
 
     def prune_action_space(self, state: FlattenedState) -> List[int]:
         """
@@ -597,16 +595,20 @@ class swap_environment(Env):
         """
         if self.is_executable_state(state):
             action_set = self.__prun_para_actions(state)
-            return action_set #np.array([self.possible_actions[i] for i in action_set])
+
+            perm_mtx = np.array([self.possible_actions[i] for i in action_set])
+            state_prim = np.matmul(state, perm_mtx)
+            return action_set, state_prim
         else:
             action_set = self.__prun_non_exe(state)
 
             perm_mtx = np.array([self.possible_actions[i] for i in action_set])
+            state_prim = np.matmul(state, perm_mtx)
 
-            #action_set, perm_mtx = self.__prun_exe_state(state, perm_mtx)
-            action_set = self.__prun_exe_state(state, action_set, perm_mtx)
+            action_set, state_prim = self.__prun_exe_state(state, action_set, state_prim)
+            #action_set = self.__prun_exe_state(state, action_set, perm_mtx)
 
-            return action_set
+            return action_set, state_prim
 
 # processing
 
