@@ -537,8 +537,20 @@ class swap_environment(Env):
         return -2
 
 # pruning
+    
+    def __get_used_matrix(self, used: List[int]):
+        """
+        :param: used: list of used qubits
+        :return: returns connectivity map with used qubits
+        """
+        used_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype=int)
+        for qubit in used:
+            used_matrix[qubit] = 1
+            used_matrix[:,qubit] = 1
+        return used_matrix
 
-    def __get_parallell_actions(self, state: FlattenedState) -> List[int]:
+
+    def __prun_para_actions(self, state: FlattenedState) -> List[int]:
         """
         :param: state: flattened state
         :return: Returns list of actions
@@ -551,7 +563,7 @@ class swap_environment(Env):
         parallell_map = np.sum(used_matrix & action_connectivity, axis=(1,2)) == 0
         return np.where(parallell_map)[0]
 
-    def __get_pruned_action_space(self, state: FlattenedState) -> List[int]:
+    def __prun_non_exe(self, state: FlattenedState) -> List[int]:
         """
         :param: state: flattened state
         :return: Returns list of actions
@@ -568,26 +580,32 @@ class swap_environment(Env):
 
         return np.where(pruned_map)[0]
 
+    def __prun_exe_state(self, state: FlattenedState, actions, actions_perm: List[PermutationMatrix]) -> Tuple[List[int], List[FlattenedState]]:
+        state_prim = np.matmul(state, actions_perm)
+        is_exe_filter = np.array(list(map(self.is_executable_state, state_prim)))
+        if (is_exe_filter == True).any():
+            return np.where(is_exe_filter)[0]#, np.array(list(compress(is_exe_filter, state_prim)))
+        else:
+            return actions#, state_prim
+
+
     def prune_action_space(self, state: FlattenedState) -> List[int]:
         """
         :param: state: flattened state
         :return: Returns list of actions
         """
         if self.is_executable_state(state):
-            return self.__get_parallell_actions(state)
+            action_set = self.__prun_para_actions(state)
+            return action_set #np.array([self.possible_actions[i] for i in action_set])
         else:
-            return self.__get_pruned_action_space(state)
+            action_set = self.__prun_non_exe(state)
 
-    def __get_used_matrix(self, used: List[int]):
-        """
-        :param: used: list of used qubits
-        :return: returns connectivity map with used qubits
-        """
-        used_matrix = np.zeros((self.n_qubits, self.n_qubits), dtype=int)
-        for qubit in used:
-            used_matrix[qubit] = 1
-            used_matrix[:,qubit] = 1
-        return used_matrix
+            perm_mtx = np.array([self.possible_actions[i] for i in action_set])
+
+            #action_set, perm_mtx = self.__prun_exe_state(state, perm_mtx)
+            action_set = self.__prun_exe_state(state, action_set, perm_mtx)
+
+            return action_set
 
 # processing
 
