@@ -21,7 +21,7 @@ from dqn.policies import CustomCnnPolicy
 from dqn.dqn import CustomDQN as DQN
 
 def main():
-    Training()
+    Training(exploration_fraction = 0.75)
     
 
 def Training(

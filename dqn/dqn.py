@@ -288,8 +288,9 @@ class CustomDQN(OffPolicyAlgorithm):
             (used in recurrent policies)
         """
         if not deterministic and np.random.rand() < self.exploration_rate:
-            n_batch = observation.shape[0]
-            action = np.array([self.action_space.sample() for _ in range(n_batch)])
+            #n_batch = observation.shape[0]
+            action = self._sample_exploration_action(observation, env)
+            #action = np.array([self.action_space.sample() for _ in range(n_batch)])
         else:
             action, state = self.policy.predict(observation, env, state, episode_start, deterministic)
         return action, state
@@ -353,6 +354,12 @@ class CustomDQN(OffPolicyAlgorithm):
 
         return state_dicts, []
     
+    def _sample_exploration_action(self, obs, env):
+        n, x, d, r, c = obs.shape
+        action_sets = np.array([env.envs[0].prune_action_space(obs[i].reshape((d, r*c))) for i in range(n)])
+        actions = np.array([np.random.choice(action_sets[i]) for i in range(n)])
+        return actions
+
     def _sample_action(
         self,
         learning_starts: int,
@@ -377,7 +384,8 @@ class CustomDQN(OffPolicyAlgorithm):
         # Select action randomly or according to policy
         if (self.num_timesteps < self.learning_starts and not (self.use_sde and self.use_sde_at_warmup)):
             # Warmup phase
-            actions = np.array([self.action_space.sample() for _ in range(env.num_envs)])
+            actions = self._sample_exploration_action(self._last_obs, env)
+            #actions = np.array([self.action_space.sample() for _ in range(env.num_envs)])
             return actions
 
         actions, state = self.predict(self._last_obs, env)
