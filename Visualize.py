@@ -17,7 +17,7 @@ n_eval_episodes = 1000
 
 modelDir = "models/"
 
-modelName = f"DQNModel({depth_of_code},{rows},{cols}).zip"
+modelName = f"model-{depth_of_code}-{rows}-{cols}"
 
 register(
     id="MultiSwapEnvironment-v0",
@@ -100,29 +100,29 @@ env.state = squash(env.state.reshape((depth_of_code, rows*cols)), True).reshape(
 
 obs = env.state
 
-done = False
-render_list.append(env.state[0].tolist())
-a.append(env.state[0].reshape(rows*cols).tolist())
-length = 0
-reward = 0
-while not done:
-    action, _states = model.predict(obs[None][None], venv,  deterministic=True)
-    if action != 0:
-        render_list.append(action[0])
+#done = False
+#render_list.append(env.state[0][0].tolist())
+#a.append(env.state[0][0].reshape(rows*cols).tolist())
+#length = 0
+#reward = 0
+#while not done:
+#    action, _states = model.predict(obs[None][None], venv,  deterministic=True)
+#    if action != 0:
+#        render_list.append(action[0])
     #only add first obs since it removes the first one to step 
-    obs,r,done,_ = env.step(action[0])
-    length += 1
-    reward += r
-    render_list.append(obs[0].tolist())
-    if action != 0:
-        a.append(pm_to_state_rep(env.possible_actions[action[0]]))
-    a.append(obs[0].reshape(rows*cols).tolist())
+#    obs,r,done,_ = env.step(action[0])
+#    length += 1
+#    reward += r
+#    render_list.append(obs[0].tolist())
+#    if action != 0:
+#        a.append(pm_to_state_rep(env.possible_actions[action[0]]))
+#    a.append(obs[0].reshape(rows*cols).tolist())
 
 #print(reward)
 print(np.array(a))
 print(squash(np.array(a)))
 
-env.render(mode = "human",render_list = render_list)
+env.render(mode = "human",render_list = [[[1,1],[2,2]],2,[[0,1],[0,1]],3,[[1,0],[0,1]]])
 
 
 #rewards = np.zeros(n_eval_episodes)

@@ -91,6 +91,7 @@ class CustomCnnPolicy(DQNPolicy):
         possible_actions = env.envs[0].possible_actions
 
         for idx, obs in enumerate(observations):
+            print(obs)
             x, d, r, c = obs.shape
             obs = obs.reshape((d, r*c))
             action_set = env.envs[0].prune_action_space(obs)

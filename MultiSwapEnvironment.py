@@ -58,7 +58,6 @@ def main():
     env.tester()
 
 
-
 #Our environment
 class swap_environment(Env):
     def __init__(self, 
@@ -96,7 +95,19 @@ class swap_environment(Env):
         #pygame screen initialization
         self.screen = None
         self.isopen = True
-    
+   
+
+def __create_number_matrix():
+    num_matrix = []
+    tmp = 0
+    for _ in range(self.rows):     
+        tmpm = []              
+        for _ in range(self.cols): 
+            tmpm.append(tmp)       
+            tmp += 1               
+        num_matrix.append(tmpm) 
+    return num_matrix
+
     def step(self, action: int) -> Tuple[List[int], int, bool, 'info']:
         self.state = self.state.reshape((self.depth, self.rows*self.cols))
         self.max_episode_steps -= 1
@@ -590,16 +601,16 @@ class swap_environment(Env):
                     action_tuples.append(tuple((i,idx)))
         return action_tuples
 
-    def __create_number_matrix(self):
-        num_matrix = []                
-        tmp = 0            
-        for _ in range(self.rows):     
-            tmpm = []              
-            for _ in range(self.cols): 
-                tmpm.append(tmp)       
-                tmp += 1               
-            num_matrix.append(tmpm) 
-        return num_matrix
+#    def __create_number_matrix():
+#        num_matrix = []
+#        tmp = 0
+#        for _ in range(self.rows):     
+#            tmpm = []              
+#            for _ in range(self.cols): 
+#                tmpm.append(tmp)       
+#                tmp += 1               
+#            num_matrix.append(tmpm) 
+#        return num_matrix
 
     def __draw_architecture(self, num_matrix, surface):
         for j in range(1,self.cols+1):
