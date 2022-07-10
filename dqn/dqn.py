@@ -7,6 +7,10 @@ import numpy as np
 import torch as th
 from torch.nn import functional as F
 
+from dqn.buffers import ReplayBuffer
+from dqn.policies import DQNPolicy
+from dqn.evaluation import evaluate_policy
+
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import ActionNoise, VectorizedActionNoise
@@ -16,13 +20,7 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Rollout
 from stable_baselines3.common.utils import get_linear_fn, is_vectorized_observation, polyak_update, safe_mean, should_collect_more_steps
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
-from dqn.buffers import CustomReplayBuffer as ReplayBuffer
-from dqn.policies import CustomCnnPolicy
-from dqn.evaluation import evaluate_policy
-
-
-
-class CustomDQN(OffPolicyAlgorithm):
+class DQN(OffPolicyAlgorithm):
     """
     Deep Q-Network (DQN)
 
@@ -69,7 +67,7 @@ class CustomDQN(OffPolicyAlgorithm):
 
     def __init__(
         self,
-        policy: Union[str, Type[CustomCnnPolicy]],
+        policy: Union[str, Type[DQNPolicy]],
         env: Union[GymEnv, str],
         learning_rate: Union[float, Schedule] = 1e-4,
         buffer_size: int = 1_000_000,  # 1e6
@@ -96,10 +94,10 @@ class CustomDQN(OffPolicyAlgorithm):
         _init_setup_model: bool = True,
     ):
 
-        super(CustomDQN, self).__init__(
+        super(DQN, self).__init__(
             policy,
             env,
-            CustomCnnPolicy,
+            DQNPolicy,
             learning_rate,
             buffer_size,
             learning_starts,
@@ -346,7 +344,7 @@ class CustomDQN(OffPolicyAlgorithm):
         return self
 
     def _excluded_save_params(self) -> List[str]:
-        return super(CustomDQN, self)._excluded_save_params() + ["q_net", "q_net_target"]
+        return super(DQN, self)._excluded_save_params() + ["q_net", "q_net_target"]
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
         state_dicts = ["policy", "policy.optimizer"]
@@ -468,11 +466,21 @@ class CustomDQN(OffPolicyAlgorithm):
         if env.num_envs > 1:
             assert train_freq.unit == TrainFrequencyUnit.STEP, "You must use only one env when doing episodic training."
 
+        # Vectorize action noise if needed
+        if action_noise is not None and env.num_envs > 1 and not isinstance(action_noise, VectorizedActionNoise):
+            action_noise = VectorizedActionNoise(action_noise, env.num_envs)
+
+        if self.use_sde:
+            self.actor.reset_noise(env.num_envs)
+
         callback.on_rollout_start()
         continue_training = True
 
         while should_collect_more_steps(train_freq, num_collected_steps, num_collected_episodes):
-            
+            if self.use_sde and self.sde_sample_freq > 0 and num_collected_steps % self.sde_sample_freq == 0:
+                # Sample a new noise matrix
+                self.actor.reset_noise(env.num_envs)
+
             # Select action randomly or according to policy
             actions = self._sample_action(learning_starts, env)
 
@@ -507,6 +515,10 @@ class CustomDQN(OffPolicyAlgorithm):
                     # Update stats
                     num_collected_episodes += 1
                     self._episode_num += 1
+
+                    if action_noise is not None:
+                        kwargs = dict(indices=[idx]) if env.num_envs > 1 else {}
+                        action_noise.reset(**kwargs)
 
                     # Log training infos
                     if log_interval is not None and self.num_timesteps % log_interval == 0 and self.num_timesteps < self.learning_starts:

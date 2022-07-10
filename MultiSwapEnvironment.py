@@ -568,6 +568,14 @@ class swap_environment(Env):
 
         return np.where(pruned_map)[0]
 
+    def __prun_exe_state(self, state: FlattenedState, actions, actions_perm: List[PermutationMatrix]) -> Tuple[List[int], List[FlattenedState]]:
+        state_prim = np.matmul(state, actions_perm)
+        is_exe_filter = np.array(list(map(self.is_executable_state, state_prim)))
+        if (is_exe_filter == True).any():
+            return np.where(is_exe_filter)[0]#, np.array(list(compress(is_exe_filter, state_prim)))
+        else:
+            return actions#, state_prim
+    
     def prune_action_space(self, state: FlattenedState) -> List[int]:
         """
         :param: state: flattened state
