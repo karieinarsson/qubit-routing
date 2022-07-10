@@ -588,7 +588,6 @@ class swap_environment(Env):
         else:
             return actions#, state_prim
 
-
     def prune_action_space(self, state: FlattenedState) -> List[int]:
         """
         :param: state: flattened state
