@@ -17,11 +17,17 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback
 from dqn.evaluation import evaluate_policy
 
-from dqn.policies import CustomCnnPolicy
-from dqn.dqn import CustomDQN as DQN
+from dqn.policies import CnnPolicy as CustomCnnPolicy
+from dqn.dqn import DQN
 
 def main():
-    Training(total_timesteps = int(3e5), rows = 3, cols = 2)
+    Training(
+        total_timesteps = int(1e6), 
+        rows = 3, 
+        cols = 2,
+        verbose = 1,
+        exploration_fraction = 0.2
+    )
     
 
 def Training(

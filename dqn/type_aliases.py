@@ -21,13 +21,48 @@ MaybeCallback = Union[None, Callable, List[callbacks.BaseCallback], callbacks.Ba
 # and ouputs a scalar (e.g. learning rate, clip range, ...)
 Schedule = Callable[[float], float]
 
-class CustomReplayBufferSamples(NamedTuple):
+
+class RolloutBufferSamples(NamedTuple):
+    observations: th.Tensor
+    actions: th.Tensor
+    old_values: th.Tensor
+    old_log_prob: th.Tensor
+    advantages: th.Tensor
+    returns: th.Tensor
+
+
+class DictRolloutBufferSamples(RolloutBufferSamples):
+    observations: TensorDict
+    actions: th.Tensor
+    old_values: th.Tensor
+    old_log_prob: th.Tensor
+    advantages: th.Tensor
+    returns: th.Tensor
+
+
+class ReplayBufferSamples(NamedTuple):
     observations: th.Tensor
     next_observations: th.Tensor
     rewards: th.Tensor
 
 
-class CustomDictReplayBufferSamples(CustomReplayBufferSamples):
+class DictReplayBufferSamples(ReplayBufferSamples):
     observations: TensorDict
     V_next_observations: TensorDict
     rewards: th.Tensor
+
+
+class RolloutReturn(NamedTuple):
+    episode_timesteps: int
+    n_episodes: int
+    continue_training: bool
+
+
+class TrainFrequencyUnit(Enum):
+    STEP = "step"
+    EPISODE = "episode"
+
+
+class TrainFreq(NamedTuple):
+    frequency: int
+    unit: TrainFrequencyUnit  # either "step" or "episode"
