@@ -26,7 +26,11 @@
 			"log_interval":{"type":"integer"},
 			
 			"eval_freq":{"type":"integer"},
-			"n_eval_episodes":{"type":"integer"}
+			"n_eval_episodes":{"type":"integer"},
+
+			"model_dir_add":{"type":"string"},                                                                                                                                                                    
+			"logdir_add":{"type":"string"}
+
 		}
 },
 "type":"object",

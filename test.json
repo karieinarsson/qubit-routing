@@ -1,0 +1,60 @@
+{
+	"batch_name" : "testbatch",
+	"batch_list" : [
+			{
+				"depth" : 10,
+				"rows" : 2,
+				"cols": 2,
+				"max_swaps_per_time_step": 1,
+				"n_envs": 20,
+
+				"learning_starts": 50000,
+				"verbose": 1,
+				"exploration_fraction": 0.5,
+				"exploration_initial_eps": 1,
+				"exploration_final_eps": 0.1,
+				"batch_size": 512,
+				"learning_rate": 0.001,
+				"target_update_interval": 10000,
+				"tau": 0.5,
+				"gamma": 0.5,
+				"train_freq": 4,
+
+				"total_timesteps": 100000,
+				"log_interval": 4,
+
+				"eval_freq": 500,
+				"n_eval_episodes": 10,
+				
+				"model_dir_add":"test/",                                                                                                                                            
+                "logdir_add":"test/"	
+			},{ 
+                "depth" : 10,     
+                "rows" : 2,
+                "cols": 2,        
+                "max_swaps_per_time_step": 1,
+                "n_envs": 20,     
+              
+                "learning_starts": 50000,
+                "verbose": 1,     
+                "exploration_fraction": 0.5,
+                "exploration_initial_eps": 1,
+                "exploration_final_eps": 0.1,
+                "batch_size": 512,
+                "learning_rate": 0.001,
+                "target_update_interval": 10000,
+                "tau": 0.5,       
+                "gamma": 0.5,     
+                "train_freq": 4,  
+              
+                "total_timesteps": 100000,
+                "log_interval": 4,
+              
+                "eval_freq": 500, 
+                "n_eval_episodes": 10,
+                                  
+                "model_dir_add":"test/",         
+                "logdir_add":"test/"    
+            }
+	]
+}

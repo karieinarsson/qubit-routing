@@ -51,7 +51,11 @@ def Training(
 
     #evaluation
     eval_freq = 500,
-    n_eval_episodes = 10
+    n_eval_episodes = 10,
+
+    #model and log directory
+    model_dir_add = "",
+    logdir_add = ""
 ):
 
     register(
@@ -75,9 +79,9 @@ def Training(
             )
 
     # Defining agent name
-    model_dir = "models/"
+    model_dir = "models/" + model_dir_add
     model_name = f"model-{depth}-{rows}-{cols}"
-    logdir="logdir/"
+    logdir="logdir/" + logdir_add
 
     # Intantiate the agent
     model = DQN(CustomCnnPolicy, 
