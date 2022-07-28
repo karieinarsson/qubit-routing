@@ -27,7 +27,7 @@ Train.py is where the model is trained and all variables for the training are de
 
 ### Visulizing training results
 
-`tensorboard --logdir logdir/`
+`python3 -m tensorboard.main --logdir=logdir`
 
 ### Visualizing quantum circuit sulotion
 
