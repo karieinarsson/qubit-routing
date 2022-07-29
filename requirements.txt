@@ -1,0 +1,6 @@
+gym
+torch
+pandas
+matplotlib
+pygame
+tensorboard
