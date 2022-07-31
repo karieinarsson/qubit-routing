@@ -7,7 +7,7 @@
 			"depth":{"type":"integer"},
 			"rows":{"type":"integer"},
 			"cols":{"type":"integer"},
-			"max_swaps_per_time_step":{"type":"integer"}.
+			"max_swaps_per_time_step":{"type":"integer"},
 			"n_envs":{"type":"integer"},
 
 			"learning_starts":{"type":"integer"},
@@ -31,12 +31,41 @@
 			"model_dir_add":{"type":"string"},                                                                                                                                                                    
 			"logdir_add":{"type":"string"}
 
-		}
-},
+		},
+    "required":[
+			"depth",
+			"rows",
+			"cols",
+			"max_swaps_per_time_step",
+			"n_envs",
+
+			"learning_starts",
+			"verbose",
+			"exploration_fraction",
+			"exploration_initial_eps",
+			"exploration_final_eps",
+			"batch_size",
+			"learning_rate",
+			"target_update_interval",
+			"tau",
+			"gamma",
+			"train_freq",
+			
+			"total_timesteps",
+			"log_interval",
+			
+			"eval_freq",
+			"n_eval_episodes",
+
+			"model_dir_add",                                                                                                                                                                    
+			"logdir_add"
+    ]
+}},
 "type":"object",
 "properties": {
 	"batch_name":{"type":"string"}, 
 	"batch_list":{"type":"array"},
-				  "items": }
+				  "items":{"$ref":"#/definitions/info"}
+  }
 
 }

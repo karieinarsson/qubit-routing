@@ -2,36 +2,46 @@ import json
 import sys
 import getopt
 import Train
+import jsonschema
+from datetime import date
 
-def main(argv):
-   json_file = ''
-   outputfile = ''
-   try:
-       opts, args = getopt.getopt(argv,"h:j:o:",["jsonfile=","ofile="])
-   except getopt.GetoptError:
-       print('test.py -i <inputfile> -o <outputfile>')
-       sys.exit(2)
-   for opt, arg in opts:
-      if opt == '-h':
-         print('test.py -i <inputfile> -o <outputfile>')
-         sys.exit()
-      elif opt in ("-j", "--jsonfile"):
-         json_file = arg 
-      elif opt in ("-o", "--ofile"):
-         outputfile = arg
-   print ('Json file is ' + json_file)
-   #print ('Output file is ' + outputfile)
-   read_json(json_file)
+def __validate_json(json_data,json_schema):
+    try:
+        jsonschema.validate(instance=json_data, schema=json_schema)
+    except jsonschema.exceptions.ValidationError as err:
+        print(err)
+        err = "Given JSON data is InValid"
+        return False, err
 
-def read_json(json_file): 
+    message = "Given JSON data is Valid"
+    return True, message
+
+def __get_schema(schema_file):
+    with open(schema_file) as f:
+        schema = json.load(f)
+    return schema
+
+def __read_json(json_file): 
     with open(json_file) as f:
-        json_data = json.load(f)
+        json_data_from_file = json.load(f)
+    return json_data_from_file
 
     #print(type(json_data["batch_list"]),json_data["batch_list"])
 
-    
+def __do_training(json_data): 
     for item in json_data["batch_list"]:
-        print("New training")
+        #add date to directory names
+        if item["logdir_add"] != "":
+            logdir_add = item["logdir_add"] + "-" + str(date.today())
+        else:
+            logdir_add = item["logdir_add"]
+
+        if item["model_dir_add"] != "":
+            model_dir_add = item["model_dir_add"] + "-" + str(date.today())
+        else:
+            model_dir_add = item["model_dir_add"]
+
+        print("New training begins")
         Train.Training(
         depth = item["depth"],
         rows = item["rows"],
@@ -53,8 +63,36 @@ def read_json(json_file):
         log_interval = item["log_interval"],
         eval_freq = item["eval_freq"],
         n_eval_episodes = item["n_eval_episodes"],
-        model_dir_add = item["model_dir_add"],
-        logdir_add = item["logdir_add"])
+        model_dir_add = model_dir_add,
+        logdir_add = logdir_add)
+
+def main(argv):
+   json_file = ''
+   schema_file = ''
+   try:
+       opts, args = getopt.getopt(argv,"h:j:s:",["jsonfile=","schemafile="])
+   except getopt.GetoptError:
+       print('test.py -j <jsonfile> -s <schemafile>')
+       sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-h':
+         print('PYTHONFILE.py -j <jsonfile> -s <schemafile>')
+         sys.exit()
+      elif opt in ("-j", "--jsonfile"):
+         json_file = arg 
+      elif opt in ("-s", "--schemafile"):
+         schema_file = arg
+   print ('Json file is ' + json_file)
+   print ('Schema file is ' + schema_file)
+   
+   json_data = __read_json(json_file)
+   json_schema = __get_schema(schema_file) 
+   boolean_value, error_or_message = __validate_json(json_data,json_schema)
+   if boolean_value:
+       print(error_or_message)
+       __do_training(json_data)
+   else:
+       print(error_or_message)
 
 
 if __name__ == "__main__":
