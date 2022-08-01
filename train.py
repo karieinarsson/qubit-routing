@@ -7,16 +7,17 @@ from stable_baselines3.common.callbacks import EvalCallback
 from dqn.policies import CnnPolicy as CustomCnnPolicy
 from dqn.dqn import DQN
 from multiswap_environment import SwapEnvironment
+from stable_baselines3.common.vec_env import SubprocVecEnv
 
 def main():
     '''
     Runs one training run
     '''
     train(
-        total_timesteps = int(1e6),
-        rows = 3,
-        cols = 2,
-        verbose = 1,
+        total_timesteps = int(15e6),
+        rows = 4,
+        cols = 3,
+        verbose = 0,
         exploration_fraction = 0.2
     )
 
@@ -25,7 +26,7 @@ def train(
     depth = 10,
     rows = 3,
     cols = 3,
-    n_envs = 20,
+    n_envs = 24,
 
     #model variables (previously 2e4)
     learning_starts = int(5e4),
@@ -58,7 +59,13 @@ def train(
         max_episode_steps=200,
     )
 
-    venv = make_vec_env("multiswap_environment-v0", n_envs = n_envs, env_kwargs = {"depth": depth, "rows": rows, "cols": cols})
+    venv = make_vec_env(
+            "multiswap_environment-v0",
+            n_envs = n_envs,
+            env_kwargs = {"depth": depth, "rows": rows, "cols": cols},
+            vec_env_cls = SubprocVecEnv,
+            vec_env_kwargs = {"start_method": "fork"}
+            )
     env = SwapEnvironment(depth, rows, cols)
 
     eval_callback = EvalCallback(
@@ -92,7 +99,8 @@ def train(
                 batch_size = batch_size,
                 optimize_memory_usage = True,
                 learning_rate = learning_rate,
-                tensorboard_log=logdir
+                tensorboard_log = logdir,
+                gradient_steps = -1
             )
 
     # Train the agent
