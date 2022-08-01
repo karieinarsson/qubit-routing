@@ -54,6 +54,7 @@ class SwapEnvironment(Env):
     '''
     Our environment
     '''
+
     def __init__(self,
                  depth: int,
                  rows: int,
@@ -474,11 +475,8 @@ class SwapEnvironment(Env):
         connectivity_matrix = np.zeros(
             (self.n_qubits, self.n_qubits), dtype=int)
         for gate in np.arange(1, int(np.max(timestep_layer))+1):
-            q = np.where(timestep_layer == gate)[0]
-            if len(q) > 2:
-                print(q)
-                assert False
-            connectivity_matrix[q[0]][q[1]] = 1
+            q_0, q_1 = np.where(timestep_layer == gate)[0]
+            connectivity_matrix[q_0][q_1] = 1
         return connectivity_matrix
 
     def is_executable_state(self,
@@ -721,6 +719,7 @@ class SwapEnvironment(Env):
                 if idx != i:
                     action_tuples.append(tuple((i, idx)))
         return action_tuples
+
 
 if __name__ == '__main__':
     main()
