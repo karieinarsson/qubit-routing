@@ -201,12 +201,12 @@ class DQNPolicy(BasePolicy):
         self.set_training_mode(False)
         
         actions = np.zeros(env.num_envs, dtype = int)
-        possible_actions = env.envs[0].possible_actions
+        possible_actions = env.get_attr("possible_actions", 0)[0] #env.envs[0].possible_actions
 
         for idx, obs in enumerate(observations):
             x, d, r, c = obs.shape
             obs = obs.reshape((d, r*c))
-            action_set = env.envs[0].prune_action_space(obs)
+            action_set = env.env_method("prune_action_space", obs, indices = 0)[0] #env.envs[0].prune_action_space(obs)
 
             with th.no_grad():
                 action = th.Tensor(np.array([possible_actions[i] for i in action_set]))
@@ -215,7 +215,7 @@ class DQNPolicy(BasePolicy):
                 value = self._predict(tensor_obs.reshape((len(action),x,d,r,c)), deterministic=deterministic)
 
             for i, o in enumerate(np.array(tensor_obs)):
-                value[i] += env.envs[0].reward_func(o, action_set[i])
+                value[i] += env.env_method("reward_func", o, action_set[i], indices=0)[0] #envs[0].reward_func(o, action_set[i])
 
             actions[idx] = action_set[np.argmax(value)]
         return actions, state

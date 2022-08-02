@@ -8,10 +8,9 @@ This project is a continuation of the work done in the bachelor's project [TIFX0
 To be able to run the training you need to install these python3 packages:
  - gym
  - torch
- - pandas
- - matplotlib
  - pygame
  - tensorboard
+ - pandas
 
 Install them using the requirements.txt file:
 
