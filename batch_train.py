@@ -22,13 +22,13 @@ def __validate_json(json_data, json_schema):
 
 
 def __get_schema(schema_file):
-    with open(schema_file, "r") as file:
+    with open(schema_file, 'r', encoding='utf-8') as file:
         schema = json.load(file)
     return schema
 
 
 def __read_json(json_file):
-    with open(json_file, "r") as file:
+    with open(json_file, 'r', encoding='utf-8') as file:
         json_data_from_file = json.load(file)
     return json_data_from_file
 
@@ -49,7 +49,7 @@ def __do_training(json_data):
             model_dir_add = item["model_dir_add"]
 
         print("New training begins")
-        Training(
+        training(
             depth=item["depth"],
             rows=item["rows"],
             cols=item["cols"],
@@ -75,10 +75,12 @@ def __do_training(json_data):
 
 
 def main(argv):
+    '''main function takes in arguments from file call and executes batch training '''
     json_file = ''
     schema_file = ''
     try:
-        opts, args = getopt.getopt(
+        # add ,args after opts to get arguments without -LETTER
+        opts = getopt.getopt(
             argv, "h:j:s:", ["jsonfile=", "schemafile="])
     except getopt.GetoptError:
         print('test.py -j <jsonfile> -s <schemafile>')
