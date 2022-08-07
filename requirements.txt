@@ -1,12 +1,7 @@
 gym
 torch
 pandas
-<<<<<<< HEAD
-matplotlib
 pygame
 tensorboard
 jsonscheme
-=======
-pygame
-tensorboard
->>>>>>> main
+
