@@ -39,12 +39,14 @@ def __do_training(json_data):
     for item in json_data["batch_list"]:
         # add date to directory names
         if item["logdir_add"] != "":
-            logdir_add = item["logdir_add"] + "-" + str(date.today())
+            logdir_add = item["logdir_add"] + \
+                "-" + str(date.today()) + "/"
         else:
             logdir_add = item["logdir_add"]
 
         if item["model_dir_add"] != "":
-            model_dir_add = item["model_dir_add"] + "-" + str(date.today())
+            model_dir_add = item["model_dir_add"] + \
+                "-" + str(date.today()) + "/"
         else:
             model_dir_add = item["model_dir_add"]
 
@@ -80,7 +82,7 @@ def main(argv):
     schema_file = ''
     try:
         # add ,args after opts to get arguments without -LETTER
-        opts = getopt.getopt(
+        opts, args = getopt.getopt(
             argv, "h:j:s:", ["jsonfile=", "schemafile="])
     except getopt.GetoptError:
         print('test.py -j <jsonfile> -s <schemafile>')

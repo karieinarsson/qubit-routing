@@ -1,11 +1,11 @@
 {
-	"batch_name" : "testbatch",
+	"batch_name" : "basetest",
 	"batch_list" : [
 			{
 				"depth" : 10,
 				"rows" : 2,
 				"cols": 2,
-				"max_swaps_per_time_step": 1,
+				"max_swaps_per_time_step": -1,
 				"n_envs": 20,
 
 				"learning_starts": 50000,
@@ -20,19 +20,19 @@
 				"gamma": 0.5,
 				"train_freq": 4,
 
-				"total_timesteps": 100000,
+				"total_timesteps": 60000,
 				"log_interval": 4,
 
 				"eval_freq": 500,
 				"n_eval_episodes": 10,
 				
-				"model_dir_add":"test/",                                                                                                                                            
-        "logdir_add":"test/"	
+				"model_dir_add":"basetest",                                                                                                                                            
+        "logdir_add":"basetest"	
 			},{ 
         "depth" : 10,     
         "rows" : 2,
         "cols": 2,        
-        "max_swaps_per_time_step": 1,
+        "max_swaps_per_time_step": -1,
         "n_envs": 20,     
       
         "learning_starts": 50000,
@@ -47,14 +47,14 @@
         "gamma": 0.5,     
         "train_freq": 4,  
       
-        "total_timesteps": 100000,
+        "total_timesteps": 60000,
         "log_interval": 4,
       
         "eval_freq": 500, 
         "n_eval_episodes": 10,
                           
-        "model_dir_add":"test/",         
-        "logdir_add":"test/"    
-            }
+        "model_dir_add":"basetest",         
+        "logdir_add":"basetest"    
+        } 
 	]
 }
