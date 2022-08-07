@@ -6,7 +6,7 @@ import sys
 import getopt
 from datetime import date
 import jsonschema
-from train import training
+from train import train
 
 
 def __validate_json(json_data, json_schema):
@@ -51,7 +51,7 @@ def __do_training(json_data):
             model_dir_add = item["model_dir_add"]
 
         print("New training begins")
-        training(
+        train(
             depth=item["depth"],
             rows=item["rows"],
             cols=item["cols"],
