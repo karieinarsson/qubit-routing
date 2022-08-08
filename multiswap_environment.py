@@ -46,7 +46,7 @@ def main():
     '''
     Main function to run tests
     '''
-    env = swap_environment(1, 2, 2)
+    env = SwapEnvironment(1, 2, 2)
     env.tester()
 
 
