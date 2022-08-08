@@ -55,7 +55,6 @@ def __do_training(json_data):
             depth=item["depth"],
             rows=item["rows"],
             cols=item["cols"],
-            max_swaps_per_time_step=item["max_swaps_per_time_step"],
             n_envs=item["n_envs"],
             learning_starts=item["learning_starts"],
             verbose=item["verbose"],
