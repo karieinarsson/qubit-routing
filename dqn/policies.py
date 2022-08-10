@@ -56,7 +56,8 @@ class QNetwork(BasePolicy):
         self.features_dim = features_dim
         self.normalize_images = normalize_images
         action_dim = self.action_space.n  # number of actions
-        q_net = create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)
+        q_net = create_mlp(self.features_dim, action_dim,
+                           self.net_arch, self.activation_fn)
         self.q_net = nn.Sequential(*q_net)
 
     def forward(self, obs: th.Tensor) -> th.Tensor:
@@ -68,7 +69,6 @@ class QNetwork(BasePolicy):
         """
         return self.q_net(self.extract_features(obs))
 
-    
     def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
         q_values = self.forward(observation)
         # Greedy action
@@ -167,11 +167,13 @@ class DQNPolicy(BasePolicy):
         self.q_net_target.set_training_mode(False)
 
         # Setup optimizer with initial learning rate
-        self.optimizer = self.optimizer_class(self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+        self.optimizer = self.optimizer_class(
+            self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
 
     def make_q_net(self) -> QNetwork:
         # Make sure we always have separate networks for features extractors etc
-        net_args = self._update_features_extractor(self.net_args, features_extractor=None)
+        net_args = self._update_features_extractor(
+            self.net_args, features_extractor=None)
         return QNetwork(**net_args).to(self.device)
 
     def forward(self, obs: th.Tensor, deterministic: bool = True) -> th.Tensor:
@@ -199,24 +201,30 @@ class DQNPolicy(BasePolicy):
             (used in recurrent policies)
         """
         self.set_training_mode(False)
-        
-        actions = np.zeros(env.num_envs, dtype = int)
-        possible_actions = env.get_attr("possible_actions", 0)[0] #env.envs[0].possible_actions
+
+        actions = np.zeros(env.num_envs, dtype=int)
+        possible_actions = env.get_attr("possible_actions", 0)[
+            0]  # env.envs[0].possible_actions
 
         for idx, obs in enumerate(observations):
-            print(obs)
+            # print(obs)
             x, d, r, c = obs.shape
             obs = obs.reshape((d, r*c))
-            action_set = env.env_method("prune_action_space", obs, indices = 0)[0] #env.envs[0].prune_action_space(obs)
+            action_set = env.env_method("prune_action_space", obs, indices=0)[
+                0]  # env.envs[0].prune_action_space(obs)
 
             with th.no_grad():
-                action = th.Tensor(np.array([possible_actions[i] for i in action_set]))
-                tensor_obs = th.Tensor(obs).reshape((d,r*c,))
+                action = th.Tensor(
+                    np.array([possible_actions[i] for i in action_set]))
+                tensor_obs = th.Tensor(obs).reshape((d, r*c,))
                 tensor_obs = th.matmul(tensor_obs, action)
-                value = self._predict(tensor_obs.reshape((len(action),x,d,r,c)), deterministic=deterministic)
+                value = self._predict(tensor_obs.reshape(
+                    (len(action), x, d, r, c)), deterministic=deterministic)
 
             for i, o in enumerate(np.array(tensor_obs)):
-                value[i] += env.env_method("reward_func", o, action_set[i], indices=0)[0] #envs[0].reward_func(o, action_set[i])
+                # envs[0].reward_func(o, action_set[i])
+                value[i] += env.env_method("reward_func",
+                                           o, action_set[i], indices=0)[0]
 
             actions[idx] = action_set[np.argmax(value)]
         return actions, state
@@ -231,7 +239,8 @@ class DQNPolicy(BasePolicy):
             dict(
                 net_arch=self.net_args["net_arch"],
                 activation_fn=self.net_args["activation_fn"],
-                lr_schedule=self._dummy_schedule,  # dummy lr schedule, not needed for loading policy alone
+                # dummy lr schedule, not needed for loading policy alone
+                lr_schedule=self._dummy_schedule,
                 optimizer_class=self.optimizer_class,
                 optimizer_kwargs=self.optimizer_kwargs,
                 features_extractor_class=self.features_extractor_class,
