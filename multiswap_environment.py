@@ -212,6 +212,8 @@ class SwapEnvironment(Env):
         index = 0
         running = True
 
+        print(render_list)
+
         while running:
             ev = pygame.event.get()
 
@@ -296,12 +298,16 @@ class SwapEnvironment(Env):
                             pygame.display.flip()
                     if event.key == pygame.K_b:
                         # back one
+                        print("backf",index)
+                        print(num_matrix)
                         if index == 0:
                             print("At first obs")
                         else:
                             index -= 1
+                            print("backs",index)
 
                             if type(render_list[index]) is list:
+                                print(num_matrix)
                                 pygame.draw.rect(
                                     surface, WHITE, surface.get_rect())
 
@@ -319,9 +325,18 @@ class SwapEnvironment(Env):
                                             render_list[index][i-1][j-1]), ((X_START*j), (Y_START*i)), 15)
                                         surface.blit(num_dict.get(
                                             num_matrix[i-1][j-1]), ((X_START*j)-5, (Y_START*i)-5))
-
+                                print(num_matrix)
                             else:
                                 swap_matrix = self.possible_actions[render_list[index]]
+                                print(num_matrix)
+
+                                num_matrix = np.asarray(num_matrix).reshape(self.rows*self.cols)
+                                num_matrix = np.matmul(num_matrix, swap_matrix)
+                                num_matrix = num_matrix.reshape((self.rows, self.cols))
+                                num_matrix= num_matrix.tolist()
+                                for i in range(len(num_matrix)):
+                                    num_matrix[i] = list(
+                                        map(int, num_matrix[i]))
 
                                 for j in range(1, self.cols+1):
                                     for i in range(1, self.rows+1):
@@ -330,13 +345,8 @@ class SwapEnvironment(Env):
                                         surface.blit(num_dict.get(
                                             num_matrix[i-1][j-1]), ((X_START*j)-5, (Y_START*i)-5))
                                 tuple_list = self.action_render(swap_matrix)
-
-                                num_matrix = np.matmul(np.asarray(num_matrix).reshape(
-                                    self.rows*self.cols), swap_matrix.T).reshape((self.rows, self.cols)).tolist()
-                                for i in range(len(num_matrix)):
-                                    num_matrix[i] = list(
-                                        map(int, num_matrix[i]))
-
+                                
+                                print(num_matrix)
                                 for t in tuple_list:
                                     r0 = t[0]//self.cols
                                     c0 = t[0] % self.cols
