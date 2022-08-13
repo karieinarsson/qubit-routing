@@ -15,7 +15,7 @@ def main():
     Runs one training run
     '''
     train(
-        total_timesteps=int(1e6),
+        total_timesteps=int(5e5),
         rows=2,
         cols=2,
         exploration_fraction=0.2
