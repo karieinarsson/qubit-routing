@@ -127,8 +127,11 @@ class SwapEnvironment(Env):
         self.state = self.state.reshape(
             (1, self.depth, self.rows, self.cols, ))
         return self.state, reward, done, info
-  
+
     def render(self, mode="human", render_list=None) -> bool:
+        """
+        used to render the circuit
+        """
         if render_list is None:
             return
         if self.screen is None:
@@ -176,7 +179,7 @@ class SwapEnvironment(Env):
             9: img9
         }
 
-        num_matrix = __get_number_matrix() 
+        num_matrix = self.__get_number_matrix()
 
         surface = pygame.Surface(self.screen.get_size())
 
@@ -230,12 +233,11 @@ class SwapEnvironment(Env):
                                         num_matrix[i-1][j-1]), ((X_START*j)-5, (Y_START*i)-5))
 
                     if event.key == pygame.K_n:
-                        # next one
                         if index == len(render_list)-1:
-                            print("At last obs")
+                            #restart
                             index = 0
 
-                            num_matrix = __get_number_matrix() 
+                            num_matrix = self.__get_number_matrix()
                             
                             pygame.draw.rect(surface, WHITE, surface.get_rect())
                             for j in range(1, self.cols+1):
@@ -269,6 +271,7 @@ class SwapEnvironment(Env):
                             self.screen.blit(surface, (0, 0))
                             pygame.display.flip()
                         else:
+                            #next one
                             index += 1
 
                             if type(render_list[index]) is list:
@@ -691,8 +694,8 @@ class SwapEnvironment(Env):
     def __get_number_matrix(self) -> [[int]]:
         tmp = 0
         tmp_list = []
-        for i in range(self.rows):
-            for j in range(self.cols):
+        for _ in range(self.rows):
+            for _ in range(self.cols):
                 tmp_list.append(tmp)
                 tmp+=1
         return tmp_list
