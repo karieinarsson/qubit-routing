@@ -19,10 +19,10 @@ def main():
     '''
     Main function to run tests
     '''
-    edge_index = torch.tensor(
-        [[0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 6, 7],
-         [1, 3, 2, 4, 5, 4, 6, 5, 7, 8, 7, 8]],
-        dtype=torch.long
+    edge_index = th.tensor(
+        [[0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 8, 8],
+         [1, 3, 0, 2, 4, 1, 5, 0, 4, 6, 1, 3, 5, 7, 2, 4, 8, 3, 7, 4, 6, 8, 7, 8]],
+        dtype=th.long
     )
     SwapEnvironment(5, edge_index, 9)
 
@@ -57,15 +57,22 @@ class SwapEnvironment(Env):
 
         # adj matrix and dist matrix
         self.adj = self.__coo_to_adj(self.edge_index, self.n_qubits)
-        self.dist_mtx = self.__get_distance_matrix(self.adj)
+        #self.dist_mtx = self.__get_distance_matrix(self.adj)
 
         # array of possible actions
         self.actions = self.__get_actions()
 
         # Number of actions we can take
         self.action_space = Discrete(len(self.actions))
+
+        x = th.tensor([[2], [1], [0], [3], [4], [6], [5], [7], [8]], dtype=th.float)
+
+        print(x)
+        print(self.adj)
+
+        assert False
         self.observation_space = Box(low=0, high=self.max_swaps,
-                                     shape=(1, depth, n_qubits, n_qubits, ),
+                                     shape=(1, depth, 1, n_qubits, ),
                                      dtype=np.float64)
 
         self.state = None
@@ -96,11 +103,10 @@ class SwapEnvironment(Env):
 
     def __coo_to_adj(self, edge_index, n_qubits):
         """"""
-
         assert edge_index.shape[0] == 2, "Not COO notation"
-        adj = torch.zeros((n_qubits, n_qubits))
+        adj = th.zeros((n_qubits, n_qubits))
         for q_0, q_1 in edge_index.t():
-            adj[q_0][q_1], adj[q_1][q_0] = 1, 1
+            adj[q_0][q_1] = 1
         return adj
 
     def __get_distance_matrix(self, adj):
