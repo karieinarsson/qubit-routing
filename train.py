@@ -4,10 +4,11 @@ Training function
 from gym.envs.registration import register
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback
-from dqn.policies import CnnPolicy as CustomCnnPolicy
+from dqn.policies import GcnnPolicy as CustomCnnPolicy
 from dqn.dqn import DQN
 from multiswap_environment import SwapEnvironment
 from stable_baselines3.common.vec_env import SubprocVecEnv
+import torch as th
 
 def main():
     '''
@@ -15,18 +16,20 @@ def main():
     '''
     train(
         total_timesteps = int(15e6),
-        rows = 4,
-        cols = 3,
-        verbose = 0,
+        verbose = 1,
         exploration_fraction = 0.2
     )
 
 def train(
     #env variables
     depth = 10,
-    rows = 3,
-    cols = 3,
-    n_envs = 24,
+    n_envs = 1,
+    n_qubits = 9,
+    edge_index = th.tensor(
+        [[0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 8, 8],
+         [1, 3, 0, 2, 4, 1, 5, 0, 4, 6, 1, 3, 5, 7, 2, 4, 8, 3, 7, 4, 6, 8, 7, 8]],
+        dtype=th.long
+    ),
 
     #model variables (previously 2e4)
     learning_starts = int(5e4),
@@ -62,11 +65,11 @@ def train(
     venv = make_vec_env(
             "multiswap_environment-v0",
             n_envs = n_envs,
-            env_kwargs = {"depth": depth, "rows": rows, "cols": cols},
+            env_kwargs = {"depth": depth,"edge_index": edge_index, "n_qubits": n_qubits},
             vec_env_cls = SubprocVecEnv,
             vec_env_kwargs = {"start_method": "fork"}
             )
-    env = SwapEnvironment(depth, rows, cols)
+    env = SwapEnvironment(depth, edge_index=edge_index, n_qubits=n_qubits)
 
     eval_callback = EvalCallback(
             env,
@@ -81,7 +84,7 @@ def train(
 
     # Defining agent name
     model_dir = "models/"
-    model_name = f"model-{depth}-{rows}-{cols}"
+    model_name = f"model"
     logdir="logdir/"
 
     # Intantiate the agent

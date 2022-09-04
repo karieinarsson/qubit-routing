@@ -8,7 +8,7 @@ import torch as th
 from torch.nn import functional as F
 
 from dqn.buffers import ReplayBuffer
-from dqn.policies import DQNPolicy
+from dqn.policies import GcnnPolicy
 from dqn.evaluation import evaluate_policy
 
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
@@ -67,7 +67,7 @@ class DQN(OffPolicyAlgorithm):
 
     def __init__(
         self,
-        policy: Union[str, Type[DQNPolicy]],
+        policy: Union[str, Type[GcnnPolicy]],
         env: Union[GymEnv, str],
         learning_rate: Union[float, Schedule] = 1e-4,
         buffer_size: int = 1_000_000,  # 1e6
@@ -97,7 +97,7 @@ class DQN(OffPolicyAlgorithm):
         super(DQN, self).__init__(
             policy,
             env,
-            DQNPolicy,
+            GcnnPolicy,
             learning_rate,
             buffer_size,
             learning_starts,
@@ -133,6 +133,8 @@ class DQN(OffPolicyAlgorithm):
         # Linear schedule will be defined in `_setup_model()`
         self.exploration_schedule = None
         self.q_net, self.q_net_target = None, None
+
+        self.edge_index = env.get_attr("edge_index", 0)[0]
 
         if _init_setup_model:
             self._setup_model()
@@ -186,6 +188,7 @@ class DQN(OffPolicyAlgorithm):
             self.observation_space,
             self.action_space,
             self.lr_schedule,
+            self.edge_index,
             **self.policy_kwargs,  # pytype:disable=not-instantiable
         )
         self.policy = self.policy.to(self.device)
@@ -240,14 +243,14 @@ class DQN(OffPolicyAlgorithm):
             # replay_data is a list of bufferdata with the range of batchsize
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
             with th.no_grad():
-                V_obs = self.q_net_target(replay_data.next_observations)
+                V_obs = self.q_net_target(replay_data.next_observations, self.edge_index)
             V_obs *= self.gamma
 
             target_q_values = V_obs.add(replay_data.rewards)
             
             # Get current Q-values estimates
             #with th.no_grad():
-            current_q_values = self.q_net(replay_data.observations)
+            current_q_values = self.q_net(replay_data.observations, self.edge_index)
             #print(current_q_values)
             # Compute Huber loss (less sensitive to outliers)
             loss = F.mse_loss(current_q_values, target_q_values)

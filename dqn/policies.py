@@ -8,6 +8,7 @@ import numpy as np
 
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.common.policies import BasePolicy, register_policy
+from stable_baselines3.common.preprocessing import preprocess_obs
 from stable_baselines3.common.torch_layers import (
     BaseFeaturesExtractor,
     CombinedExtractor,
@@ -36,6 +37,7 @@ class QNetwork(BasePolicy):
         action_space: gym.spaces.Space,
         features_extractor: nn.Module,
         features_dim: int,
+        edge_index,
         net_arch: Optional[List[int]] = None,
         activation_fn: Type[nn.Module] = nn.ReLU,
         normalize_images: bool = True,
@@ -50,6 +52,7 @@ class QNetwork(BasePolicy):
         if net_arch is None:
             net_arch = [64, 64]
 
+        self.edge_index = edge_index
         self.net_arch = net_arch
         self.activation_fn = activation_fn
         self.features_extractor = features_extractor
@@ -87,8 +90,18 @@ class QNetwork(BasePolicy):
         )
         return data
 
+    def extract_features(self, obs: th.Tensor) -> th.Tensor:
+        """
+        Preprocess the observation if needed and extract features.
 
-class DQNPolicy(BasePolicy):
+        :param obs:
+        :return:
+        """
+        assert self.features_extractor is not None, "No features extractor was set"
+        preprocessed_obs = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
+        return self.features_extractor(preprocessed_obs, self.edge_index)
+
+class GcnnPolicy(BasePolicy):
     """
     Policy class with Q-Value Net and target net for DQN
 
@@ -113,6 +126,7 @@ class DQNPolicy(BasePolicy):
         observation_space: gym.spaces.Space,
         action_space: gym.spaces.Space,
         lr_schedule: Schedule,
+        edge_index,
         net_arch: Optional[List[int]] = None,
         activation_fn: Type[nn.Module] = nn.ReLU,
         features_extractor_class: Type[BaseFeaturesExtractor] = FlattenExtractor,
@@ -121,10 +135,10 @@ class DQNPolicy(BasePolicy):
         optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
     ):
-        super(DQNPolicy, self).__init__(
+        super(GcnnPolicy, self).__init__(
             observation_space,
-            action_space,
-            features_extractor_class,
+            Discrete(1),
+            GCNN,
             features_extractor_kwargs,
             optimizer_class=optimizer_class,
             optimizer_kwargs=optimizer_kwargs,
@@ -136,8 +150,9 @@ class DQNPolicy(BasePolicy):
             else:
                 net_arch = [64, 64]
 
+        self.edge_index = edge_index
         self.net_arch = net_arch
-        self.activation_fn = activation_fn
+        self.activation_fn = nn.ReLU
         self.normalize_images = normalize_images
 
         self.net_args = {
@@ -174,7 +189,7 @@ class DQNPolicy(BasePolicy):
         # Make sure we always have separate networks for features extractors etc
         net_args = self._update_features_extractor(
             self.net_args, features_extractor=None)
-        return QNetwork(**net_args).to(self.device)
+        return QNetwork(edge_index=self.edge_index, **net_args).to(self.device)
 
     def forward(self, obs: th.Tensor, deterministic: bool = True) -> th.Tensor:
         return self._predict(obs, deterministic=deterministic)
@@ -203,27 +218,18 @@ class DQNPolicy(BasePolicy):
         self.set_training_mode(False)
 
         actions = np.zeros(env.num_envs, dtype=int)
-        possible_actions = env.get_attr("possible_actions", 0)[
-            0]  # env.envs[0].possible_actions
-
+        possible_actions = env.get_attr("actions", 0)[0]
         for idx, obs in enumerate(observations):
-            x, d, r, c = obs.shape
-            obs = obs.reshape((d, r*c))
-            action_set = env.env_method("prune_action_space", obs, indices=0)[
-                0]  # env.envs[0].prune_action_space(obs)
-
+            d, r, c = obs.shape
+            action_set = env.env_method("pruning", obs, indices=0)[0]
             with th.no_grad():
-                action = th.Tensor(
-                    np.array([possible_actions[i] for i in action_set]))
+                action = th.Tensor([np.array(possible_actions)[i] for i in action_set])
                 tensor_obs = th.Tensor(obs).reshape((d, r*c,))
                 tensor_obs = th.matmul(tensor_obs, action)
-                value = self._predict(tensor_obs.reshape(
-                    (len(action), x, d, r, c)), deterministic=deterministic)
+                value = self._predict(tensor_obs, deterministic=deterministic)
 
             for i, o in enumerate(np.array(tensor_obs)):
-                # envs[0].reward_func(o, action_set[i])
-                value[i] += env.env_method("reward_func",
-                                           o, action_set[i], indices=0)[0]
+                value[i] += env.env_method("reward_func",o, action_set[i], indices=0)[0]
 
             actions[idx] = action_set[np.argmax(value)]
         return actions, state
@@ -260,99 +266,5 @@ class DQNPolicy(BasePolicy):
         self.training = mode
 
 
-MlpPolicy = DQNPolicy
-
-
-class CnnPolicy(DQNPolicy):
-    """
-    Policy class for DQN when using images as input.
-
-    :param observation_space: Observation space
-    :param action_space: Action space
-    :param lr_schedule: Learning rate schedule (could be constant)
-    :param net_arch: The specification of the policy and value networks.
-    :param activation_fn: Activation function
-    :param features_extractor_class: Features extractor to use.
-    :param normalize_images: Whether to normalize images or not,
-         dividing by 255.0 (True by default)
-    :param optimizer_class: The optimizer to use,
-        ``th.optim.Adam`` by default
-    :param optimizer_kwargs: Additional keyword arguments,
-        excluding the learning rate, to pass to the optimizer
-    """
-
-    def __init__(
-        self,
-        observation_space: gym.spaces.Space,
-        action_space: gym.spaces.Space,
-        lr_schedule: Schedule,
-        net_arch: Optional[List[int]] = None,
-        activation_fn: Type[nn.Module] = nn.ReLU,
-        features_extractor_class: Type[BaseFeaturesExtractor] = NatureCNN,
-        features_extractor_kwargs: Optional[Dict[str, Any]] = None,
-        normalize_images: bool = True,
-        optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
-        optimizer_kwargs: Optional[Dict[str, Any]] = None,
-    ):
-        super(CnnPolicy, self).__init__(
-            observation_space,
-            Discrete(1),
-            lr_schedule,
-            net_arch,
-            activation_fn,
-            features_extractor_class,
-            features_extractor_kwargs,
-            normalize_images,
-            optimizer_class,
-            optimizer_kwargs,
-        )
-
-
-class MultiInputPolicy(DQNPolicy):
-    """
-    Policy class for DQN when using dict observations as input.
-
-    :param observation_space: Observation space
-    :param action_space: Action space
-    :param lr_schedule: Learning rate schedule (could be constant)
-    :param net_arch: The specification of the policy and value networks.
-    :param activation_fn: Activation function
-    :param features_extractor_class: Features extractor to use.
-    :param normalize_images: Whether to normalize images or not,
-         dividing by 255.0 (True by default)
-    :param optimizer_class: The optimizer to use,
-        ``th.optim.Adam`` by default
-    :param optimizer_kwargs: Additional keyword arguments,
-        excluding the learning rate, to pass to the optimizer
-    """
-
-    def __init__(
-        self,
-        observation_space: gym.spaces.Dict,
-        action_space: gym.spaces.Space,
-        lr_schedule: Schedule,
-        net_arch: Optional[List[int]] = None,
-        activation_fn: Type[nn.Module] = nn.ReLU,
-        features_extractor_class: Type[BaseFeaturesExtractor] = CombinedExtractor,
-        features_extractor_kwargs: Optional[Dict[str, Any]] = None,
-        normalize_images: bool = True,
-        optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
-        optimizer_kwargs: Optional[Dict[str, Any]] = None,
-    ):
-        super(MultiInputPolicy, self).__init__(
-            observation_space,
-            action_space,
-            lr_schedule,
-            net_arch,
-            activation_fn,
-            features_extractor_class,
-            features_extractor_kwargs,
-            normalize_images,
-            optimizer_class,
-            optimizer_kwargs,
-        )
-
-
+MlpPolicy = GcnnPolicy
 register_policy("MlpPolicy", MlpPolicy)
-register_policy("CnnPolicy", CnnPolicy)
-register_policy("MultiInputPolicy", MultiInputPolicy)
