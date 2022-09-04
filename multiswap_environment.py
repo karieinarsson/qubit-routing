@@ -65,18 +65,15 @@ class SwapEnvironment(Env):
         # Number of actions we can take
         self.action_space = Discrete(len(self.actions))
 
-        x = th.tensor([[2], [1], [0], [3], [4], [6], [5], [7], [8]], dtype=th.float)
+        self.state = th.zeros((self.depth, self.n_qubits, 1), dtype=th.float)
+        for i in range(self.depth):
+            self.state[i] = th.tensor([[2], [1], [0], [3], [4], [6], [5], [7], [8]], dtype=th.float)
+    
+        #self.state = th.tensor([[2], [1], [0], [3], [4], [6], [5], [7], [8]], dtype=th.float)
 
-        print(x)
-        print(self.adj)
-
-        assert False
         self.observation_space = Box(low=0, high=self.max_swaps,
-                                     shape=(1, depth, 1, n_qubits, ),
+                                     shape=(depth, n_qubits, 1, ),
                                      dtype=np.float64)
-
-        self.state = None
-        self.code = None
 
         # reset environment
         self.reset()
@@ -88,7 +85,7 @@ class SwapEnvironment(Env):
         :return: returns state after action, reward of the action,
             bool that indicates if the episode if done and info
         """
-        pass
+        return self.state, 1, False, {} 
 
     def render(self, mode="human", render_list=None) -> bool:
         pass
@@ -136,7 +133,12 @@ class SwapEnvironment(Env):
 
     def __get_actions(self):
         """"""
-        return self.edge_index.t()
+        return np.array([np.identity(self.n_qubits)])
+
+# Pruning
+
+    def pruning(self, obs):
+        return range(len(self.actions))
 
 # reward function
 
@@ -147,12 +149,7 @@ class SwapEnvironment(Env):
 
         :return: The immediate reward
         """
-        if self.is_executable_state(state):
-            parallell_actions = self.prune_action_space(state)
-            if action in parallell_actions:
-                return 0
-            return -1
-        return -2
+        return 1
 
     def is_executable_state(self, state) -> bool:
         """
@@ -160,11 +157,7 @@ class SwapEnvironment(Env):
 
         :return: Bool which is True if all gates are executable in the first timestep layer
         """
-        connectivity_matrix = self.__timestep_layer_to_connectivity_matrix(
-            state[0])
-        if (connectivity_matrix & self.arch == connectivity_matrix).all():
-            return True
-        return False
+        return True
 
 
 if __name__ == '__main__':
