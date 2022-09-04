@@ -4,6 +4,8 @@ This is a OpenAI gym environment made for qubit routing
 
 from typing import List, Tuple
 import torch as th
+import math
+import copy
 from torch import Tensor as torch
 from gym import Env
 from gym.spaces import Discrete, Box
@@ -25,6 +27,7 @@ def main():
         dtype=th.long
     )
     SwapEnvironment(5, edge_index, 9)
+
 
 
 class SwapEnvironment(Env):
@@ -58,9 +61,9 @@ class SwapEnvironment(Env):
         # adj matrix and dist matrix
         self.adj = self.__coo_to_adj(self.edge_index, self.n_qubits)
         #self.dist_mtx = self.__get_distance_matrix(self.adj)
-
-        # array of possible actions
-        self.actions = self.__get_actions()
+    
+        #array of possible actions
+        self.actions = self._get_actions()
 
         # Number of actions we can take
         self.action_space = Discrete(len(self.actions))
@@ -70,10 +73,13 @@ class SwapEnvironment(Env):
         print(x)
         print(self.adj)
 
-        assert False
+        #assert False
         self.observation_space = Box(low=0, high=self.max_swaps,
                                      shape=(1, depth, 1, n_qubits, ),
                                      dtype=np.float64)
+        
+        self.layers = 0
+        self.code_length = None
 
         self.state = None
         self.code = None
@@ -88,7 +94,30 @@ class SwapEnvironment(Env):
         :return: returns state after action, reward of the action,
             bool that indicates if the episode if done and info
         """
-        pass
+        action_matrix = self.actions[action]
+        self.state = np.transpose(self.state)
+        self.state = np.matmul(self.state, action_matrix)
+        self.code = np.matmul(self.code, action_matrix)
+    
+        self.max_episode_steps -= 1
+
+        "reward_func needs to be rewritten"
+        reward = self.reward_func()
+
+        if reward >= -1:
+            # remove the executed slice and add a new slice from code at the end
+            self.state[0], self.code = self.code[:1], self.code[1:]
+            self.state = np.roll(self.state, -1, axis=0)
+            self.code_length -= 1
+
+
+        done = self.code_length <= 0 or self.max_episode_steps <= 0 
+        
+        info = {}
+
+        self.state = np.transpose(self.state)
+
+        return self.state, reward, done, info
 
     def render(self, mode="human", render_list=None) -> bool:
         pass
@@ -97,9 +126,78 @@ class SwapEnvironment(Env):
         """
         :return: returns the state
         """
+        self.max_layers = self.depth
+
+        self.state = self._make_state()
+        
+        self.code_length = len(self.state)
+
+        self.max_episode_steps = self.timeout
+
         return self.state
 
 # Init helper functions
+
+    def __gate_to_permutation_matrix(self,
+                                     permutaion_matrix,
+                                     gate: List[int]
+                                     ):
+        """
+        :param: permutaion_matrix: permutation matrix
+        :param: gate: a list of the start qubit and target qubit of the gate
+        :return: returns a permutaion matrix with the gate link included
+        """
+        permutaion_matrix = copy.deepcopy(permutaion_matrix)
+        q_0, q_1 = gate
+
+        permutaion_matrix[q_0][q_0] = 0
+        permutaion_matrix[q_1][q_1] = 0
+        permutaion_matrix[q_0][q_1] = 1
+        permutaion_matrix[q_1][q_0] = 1
+
+        return permutaion_matrix
+
+    def _get_actions(self,
+                               iterations: int = None,
+                               architecture: Matrix = None,
+                               permutaion_matrix = None
+                               ):
+        """
+        :param: iterations: (used for recursion) The current iteration of the recurtion
+        :param: architecture: (used for recurision) a modified architecture that removes links from and to used qubits
+        :param: permutaion_matrix: (used for recursion) a permutaion matrix that could include swaps
+        :return: List of permutation matrices corresponding to all possible actions for the current architecture
+        """
+        
+        if iterations is None:
+            iterations = math.floor(self.n_qubits/2)
+
+        if architecture is None:
+            architecture = self.adj
+
+        if permutaion_matrix is None:
+            permutaion_matrix = np.identity(self.n_qubits, dtype=int)
+
+        possible_actions = [permutaion_matrix]
+
+        for row in range(self.n_qubits):
+            for col in range(self.n_qubits):
+                if architecture[row][col] == 0:
+                    continue
+                modified_architecture = copy.deepcopy(architecture)
+                modified_architecture[row] = 0
+                modified_architecture[col] = 0
+                modified_architecture[:, col] = 0
+                modified_architecture[:, row] = 0
+                modified_permutaion_matrix = self.__gate_to_permutation_matrix(
+                    permutaion_matrix, [row, col])
+                for action in self._get_actions(iterations-1, modified_architecture, modified_permutaion_matrix):
+                    possible_actions.append(action)
+
+        possible_actions = [tuple(action) for action in possible_actions]
+        possible_actions = np.unique(possible_actions, axis=0)
+
+        return possible_actions
 
     def __coo_to_adj(self, edge_index, n_qubits):
         """"""
@@ -134,9 +232,29 @@ class SwapEnvironment(Env):
             i += 1
         return torch.tensor(distance_matrix)
 
-    def __get_actions(self):
-        """"""
-        return self.edge_index.t()
+# Code generation
+
+    def _make_state_slice(self):
+        """
+        :return: Flattened timestep layer of random gates
+        """
+        max_gates = math.floor(self.n_qubits/2)
+        state_slice = np.zeros(self.n_qubits)
+        for i in range(1, np.random.choice(range(2, max_gates+2))):
+            state_slice[i-1] = i
+            state_slice[i-1+max_gates] = i
+        np.random.shuffle(state_slice)
+        return state_slice
+
+    def _make_state(self):
+        """
+        :return: State composed of random timestep layers with random gates
+        """
+        #state = np.zeros((self.max_layers, self.rows, self.cols))
+        state = []
+        for i in range(self.max_layers):
+            state.append(self._make_state_slice())
+        return state
 
 # reward function
 
