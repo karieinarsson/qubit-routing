@@ -14,7 +14,7 @@ from stable_baselines3.common.torch_layers import (
     FlattenExtractor,
     create_mlp,
 )
-from dqn.torch_layers import NatureCNN
+from dqn.torch_layers import GCNN
 from stable_baselines3.common.type_aliases import Schedule
 
 
@@ -131,7 +131,7 @@ class DQNPolicy(BasePolicy):
         )
 
         if net_arch is None:
-            if features_extractor_class == NatureCNN:
+            if features_extractor_class == GCNN:
                 net_arch = []
             else:
                 net_arch = [64, 64]
