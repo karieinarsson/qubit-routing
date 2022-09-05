@@ -59,29 +59,28 @@ class SwapEnvironment(Env):
         self.edge_index = edge_index
 
         # adj matrix and dist matrix
-        self.adj = self.__coo_to_adj(self.edge_index, self.n_qubits)
+        self.adj = self._coo_to_adj(self.edge_index, self.n_qubits)
         #self.dist_mtx = self.__get_distance_matrix(self.adj)
     
         #array of possible actions
-        self.actions = self._get_actions()
+        name = str(self.edge_index).replace(' ', '').replace('\n', '')
+        a_dir = "actions/"
+        try:
+            a = np.load(a_dir + name + ".npy")
+        except:
+            a = self._get_actions()
+            np.save(a_dir + name, a)
 
+        self.actions = th.tensor(a, dtype=th.double)
+        
         # Number of actions we can take
         self.action_space = Discrete(len(self.actions))
-
-        self.state = th.zeros((self.depth, self.n_qubits, 1), dtype=th.float)
-        for i in range(self.depth):
-            self.state[i] = th.tensor([[2], [1], [0], [3], [4], [6], [5], [7], [8]], dtype=th.float)
     
-        #self.state = th.tensor([[2], [1], [0], [3], [4], [6], [5], [7], [8]], dtype=th.float)
-
-        print(x)
-        print(self.adj)
-
-        assert False
         self.observation_space = Box(low=0, high=self.max_swaps,
                                      shape=(depth, n_qubits, 1, ),
                                      dtype=np.float64)
         
+        self.state = None
         self.layers = 0
         self.code_length = None
 
@@ -95,28 +94,23 @@ class SwapEnvironment(Env):
         :return: returns state after action, reward of the action,
             bool that indicates if the episode if done and info
         """
-        action_matrix = self.actions[action]
-        self.state = np.transpose(self.state)
-        self.state = np.matmul(self.state, action_matrix)
-        self.code = np.matmul(self.code, action_matrix)
-    
+        self.state = th.matmul(self.actions[action], self.state)
+
         self.max_episode_steps -= 1
 
         "reward_func needs to be rewritten"
-        reward = self.reward_func()
+        reward = self.reward_func(self.state, action)
 
         if reward >= -1:
             # remove the executed slice and add a new slice from code at the end
-            self.state[0], self.code = self.code[:1], self.code[1:]
-            self.state = np.roll(self.state, -1, axis=0)
-            self.code_length -= 1
+            self.state[0]= th.zeros((self.n_qubits, 1))
+            self.state = th.roll(self.state, -1, dims=0)
+            
+            self.max_layers -= 1
 
-
-        done = self.code_length <= 0 or self.max_episode_steps <= 0 
+        done = self.max_layers <= 0 or self.max_episode_steps <= 0 
         
         info = {}
-
-        self.state = np.transpose(self.state)
 
         return self.state, reward, done, info
 
@@ -130,8 +124,6 @@ class SwapEnvironment(Env):
         self.max_layers = self.depth
 
         self.state = self._make_state()
-        
-        self.code_length = len(self.state)
 
         self.max_episode_steps = self.timeout
 
@@ -139,7 +131,7 @@ class SwapEnvironment(Env):
 
 # Init helper functions
 
-    def __gate_to_permutation_matrix(self,
+    def _gate_to_permutation_matrix(self,
                                      permutaion_matrix,
                                      gate: List[int]
                                      ):
@@ -159,10 +151,10 @@ class SwapEnvironment(Env):
         return permutaion_matrix
 
     def _get_actions(self,
-                               iterations: int = None,
-                               architecture: Matrix = None,
-                               permutaion_matrix = None
-                               ):
+                     iterations: int = None,
+                     architecture: Matrix = None,
+                     permutaion_matrix = None
+                     ):
         """
         :param: iterations: (used for recursion) The current iteration of the recurtion
         :param: architecture: (used for recurision) a modified architecture that removes links from and to used qubits
@@ -190,7 +182,7 @@ class SwapEnvironment(Env):
                 modified_architecture[col] = 0
                 modified_architecture[:, col] = 0
                 modified_architecture[:, row] = 0
-                modified_permutaion_matrix = self.__gate_to_permutation_matrix(
+                modified_permutaion_matrix = self._gate_to_permutation_matrix(
                     permutaion_matrix, [row, col])
                 for action in self._get_actions(iterations-1, modified_architecture, modified_permutaion_matrix):
                     possible_actions.append(action)
@@ -200,15 +192,15 @@ class SwapEnvironment(Env):
 
         return possible_actions
 
-    def __coo_to_adj(self, edge_index, n_qubits):
+    def _coo_to_adj(self, edge_index, n_qubits):
         """"""
         assert edge_index.shape[0] == 2, "Not COO notation"
-        adj = th.zeros((n_qubits, n_qubits))
+        adj = th.zeros((n_qubits, n_qubits), dtype=int)
         for q_0, q_1 in edge_index.t():
             adj[q_0][q_1] = 1
         return adj
 
-    def __get_distance_matrix(self, adj):
+    def _get_distance_matrix(self, adj):
         """The distance matrix indicates how many swaps are needed to go from
         qubit[i] to qubit[j].
         Args:
@@ -240,23 +232,35 @@ class SwapEnvironment(Env):
         :return: Flattened timestep layer of random gates
         """
         max_gates = math.floor(self.n_qubits/2)
-        state_slice = np.zeros(self.n_qubits)
+        state_slice = np.zeros(self.n_qubits, dtype=int)
         for i in range(1, np.random.choice(range(2, max_gates+2))):
             state_slice[i-1] = i
             state_slice[i-1+max_gates] = i
         np.random.shuffle(state_slice)
-        return state_slice
+        return state_slice.reshape((self.n_qubits, 1))
 
     def _make_state(self):
         """
         :return: State composed of random timestep layers with random gates
         """
-        #state = np.zeros((self.max_layers, self.rows, self.cols))
-        state = []
-        for i in range(self.max_layers):
-            state.append(self._make_state_slice())
-        return state
+        state = np.zeros((self.depth, self.n_qubits, 1))
+        for i in range(self.depth):
+            state[i] = self._make_state_slice()
+        return th.tensor(state)
+
 # reward function
+
+    def is_executable_state(self, state) -> bool:
+        """
+        :param: state: A flattened state of gates
+
+        :return: Bool which is True if all gates are executable in the first timestep layer
+        """
+        mtx = th.zeros((self.n_qubits, self.n_qubits), dtype=int)
+        for gate in np.arange(1, th.max(state[0])+1):
+            q_0, q_1 = np.where(state[0] == gate)
+            mtx[q_0[1]][q_1[1]], mtx[q_1[1]][q_0[1]] = 1, 1
+        return (mtx & self.adj == mtx).all()
 
     def reward_func(self, state, action: int) -> int:
         """
@@ -265,16 +269,18 @@ class SwapEnvironment(Env):
 
         :return: The immediate reward
         """
-        return 1
+        if self.is_executable_state(state):
+            return 0
+        return -1
 
-    def is_executable_state(self, state) -> bool:
+# Pruning
+
+    def pruning(self, state) -> List[int]:
         """
-        :param: state: A flattened state of gates
-
-        :return: Bool which is True if all gates are executable in the first timestep layer
+        :param: state: flattened state
+        :return: Returns list of actions
         """
-        return True
-
+        return range(len(self.actions))
 
 if __name__ == '__main__':
     main()

@@ -220,13 +220,16 @@ class GcnnPolicy(BasePolicy):
         actions = np.zeros(env.num_envs, dtype=int)
         possible_actions = env.get_attr("actions", 0)[0]
         for idx, obs in enumerate(observations):
-            d, r, c = obs.shape
-            action_set = env.env_method("pruning", obs, indices=0)[0]
             with th.no_grad():
+                tensor_obs = th.Tensor(obs)
+                action_set = env.env_method("pruning", tensor_obs, indices=0)[0]
+                tensor_obs = tensor_obs.reshape((1,10,9))
+                tensor_obs = tensor_obs.repeat(len(action_set),1,1)
                 action = th.Tensor([np.array(possible_actions)[i] for i in action_set])
-                tensor_obs = th.Tensor(obs).reshape((d, r*c,))
+                print(action.shape)
+                print(tensor_obs.shape)
                 tensor_obs = th.matmul(tensor_obs, action)
-                value = self._predict(tensor_obs, deterministic=deterministic)
+                value = self._predict(tensor_obs.reshape((131,10,9,1)), deterministic=deterministic)
 
             for i, o in enumerate(np.array(tensor_obs)):
                 value[i] += env.env_method("reward_func",o, action_set[i], indices=0)[0]
