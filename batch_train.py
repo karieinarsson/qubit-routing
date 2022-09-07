@@ -10,11 +10,22 @@ from train import train
 
 
 class BatchTrain:
-    def __init__(self, json_file, schema_file):
+    '''
+    A class to make batch training possible
+    '''
+    def __init__(self, json_file: str, schema_file: str):
+        """
+        :param: json_file: The file path to the json file with the batch trining information (example /JSON_files/basetest.json)
+        :param: schema_file : The file path to the schema file to check the json file against (example /JSON_files/schema.json)
+        """
         self.json_file = json_file
         self.schema_file = schema_file
 
-    def validate_json(self):
+    def validate_json(self) -> tuple:
+        """
+        :return: Boolean to tell if the json file validates against the schema
+        :return: A message
+        """ 
         json_data = self.__read_json()
         json_schema = self.__get_schema()
         try:
@@ -27,19 +38,27 @@ class BatchTrain:
         message = "Given JSON data is Valid"
         return True, message
 
-    def __get_schema(self):
+    def __get_schema(self) -> dict:
+        """
+        :return: The schema in a readable format
+        """ 
         with open(self.schema_file, 'r', encoding='utf-8') as file:
             schema = json.load(file)
         return schema
 
-    def __read_json(self):
+    def __read_json(self) -> dict:
+        """
+        :return: The json_data in a readable format
+        """
         with open(self.json_file, 'r', encoding='utf-8') as file:
             json_data = json.load(file)
         return json_data
 
-        # print(type(json_data["batch_list"]),json_data["batch_list"])
-
     def do_training(self):
+        """
+        Uses the data from json_file to do training by calling train 
+        and saves it to a file based on the date
+        """
         json_data = self.__read_json()
         for item in json_data["batch_list"]:
             # add date to directory names
@@ -79,13 +98,19 @@ class BatchTrain:
                 model_dir_add=model_dir_add,
                 logdir_add=logdir_add)
 
+            return
 
-def main(argv):
-    '''main function takes in arguments from file call and executes batch training '''
+
+def main(argv: list[str]):
+    """
+    Main function takes in arguments from file call and executes batch training 
+
+    :param: The arguments given when program is started
+    """
+
     json_file = ''
     schema_file = ''
     try:
-        # add ,args after opts to get arguments without -LETTER
         opts, args = getopt.getopt(
             argv, "h:j:s:", ["jsonfile=", "schemafile="])
     except getopt.GetoptError:
@@ -110,7 +135,8 @@ def main(argv):
         batch_class.do_training()
     else:
         print(error_or_message)
-
+    
+    return
 
 if __name__ == "__main__":
     main(sys.argv[1:])
