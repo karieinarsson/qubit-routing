@@ -1,0 +1,71 @@
+{
+"title":"Batch_training_template",
+"description":"information for batch training, info is the variables needed in Training function, batch_name is used to name files, batch_list is the different info that is to be used",
+"definitions":{
+"info": {"type":"object",
+		"properties":{
+			"depth":{"type":"integer"},
+			"rows":{"type":"integer"},
+			"cols":{"type":"integer"},
+			"max_swaps_per_time_step":{"type":"integer"},
+			"n_envs":{"type":"integer"},
+
+			"learning_starts":{"type":"integer"},
+			"verbose":{"type":"integer"},
+			"exploration_fraction":{"type":"number"},
+			"exploration_initial_eps":{"type":"number"},
+			"exploration_final_eps":{"type":"number"},
+			"batch_size":{"type":"integer"},
+			"learning_rate":{"type":"number"},
+			"target_update_interval":{"type":"integer"},
+			"tau":{"type":"number"},
+			"gamma":{"type":"number"},
+			"train_freq":{"type":"integer"},
+			
+			"total_timesteps":{"type":"integer"},
+			"log_interval":{"type":"integer"},
+			
+			"eval_freq":{"type":"integer"},
+			"n_eval_episodes":{"type":"integer"},
+
+			"model_dir_add":{"type":"string"},                                                                                                                                                                    
+			"logdir_add":{"type":"string"}
+
+		},
+    "required":[
+			"depth",
+			"rows",
+			"cols",
+			"max_swaps_per_time_step",
+			"n_envs",
+
+			"learning_starts",
+			"verbose",
+			"exploration_fraction",
+			"exploration_initial_eps",
+			"exploration_final_eps",
+			"batch_size",
+			"learning_rate",
+			"target_update_interval",
+			"tau",
+			"gamma",
+			"train_freq",
+			
+			"total_timesteps",
+			"log_interval",
+			
+			"eval_freq",
+			"n_eval_episodes",
+
+			"model_dir_add",                                                                                                                                                                    
+			"logdir_add"
+    ]
+}},
+"type":"object",
+"properties": {
+	"batch_name":{"type":"string"}, 
+	"batch_list":{"type":"array"},
+				  "items":{"$ref":"#/definitions/info"}
+  }
+
+}

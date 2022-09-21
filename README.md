@@ -31,3 +31,9 @@ Train.py is where the model is trained and all variables for the training are de
 ### Visualizing quantum circuit sulotion
 
 `Visualize.py`
+
+### Batch training
+
+ BatchTrain.py
+
+ python3 BatchTrain.py -j <jsonfile> -s <jsonscheme file>

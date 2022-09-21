@@ -3,3 +3,5 @@ torch
 pandas
 pygame
 tensorboard
+jsonscheme
+
