@@ -15,15 +15,15 @@ def main():
     Runs one training run
     '''
     train(
-        total_timesteps = int(15e6),
-        verbose = 1,
+        total_timesteps = int(2e6),
+        verbose = 0,
         exploration_fraction = 0.2
     )
 
 def train(
     #env variables
     depth = 10,
-    n_envs = 1,
+    n_envs = 24,
     n_qubits = 9,
     edge_index = th.tensor(
         [[0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 8, 8],
@@ -49,7 +49,7 @@ def train(
     log_interval = 4,
 
     #evaluation
-    eval_freq = 500,
+    eval_freq = 1000,
     n_eval_episodes = 10
 ):
     '''

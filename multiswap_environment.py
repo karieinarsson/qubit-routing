@@ -94,21 +94,23 @@ class SwapEnvironment(Env):
         :return: returns state after action, reward of the action,
             bool that indicates if the episode if done and info
         """
+        done = False
         self.state = th.matmul(self.actions[action], self.state)
 
         self.max_episode_steps -= 1
-
-        "reward_func needs to be rewritten"
         reward = self.reward_func(self.state, action)
 
-        if reward >= -1:
+        if reward >= 0:
             # remove the executed slice and add a new slice from code at the end
             self.state[0]= th.zeros((self.n_qubits, 1))
             self.state = th.roll(self.state, -1, dims=0)
             
             self.max_layers -= 1
+            done = self.max_layers <= 0
 
-        done = self.max_layers <= 0 or self.max_episode_steps <= 0 
+        if self.max_episode_steps <= 0:
+            reward = -200
+            done = True
         
         info = {}
 
@@ -256,6 +258,8 @@ class SwapEnvironment(Env):
 
         :return: Bool which is True if all gates are executable in the first timestep layer
         """
+        assert type(state) == th.Tensor
+
         mtx = th.zeros((self.n_qubits, self.n_qubits), dtype=int)
         for gate in np.arange(1, th.max(state[0])+1):
             q_0, q_1 = np.where(state[0] == gate)

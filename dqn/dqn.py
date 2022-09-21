@@ -243,14 +243,14 @@ class DQN(OffPolicyAlgorithm):
             # replay_data is a list of bufferdata with the range of batchsize
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
             with th.no_grad():
-                V_obs = self.q_net_target(replay_data.next_observations, self.edge_index)
+                V_obs = self.q_net_target(replay_data.next_observations)
             V_obs *= self.gamma
 
             target_q_values = V_obs.add(replay_data.rewards)
             
             # Get current Q-values estimates
             #with th.no_grad():
-            current_q_values = self.q_net(replay_data.observations, self.edge_index)
+            current_q_values = self.q_net(replay_data.observations)
             #print(current_q_values)
             # Compute Huber loss (less sensitive to outliers)
             loss = F.mse_loss(current_q_values, target_q_values)

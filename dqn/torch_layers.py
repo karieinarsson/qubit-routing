@@ -1,6 +1,7 @@
 """GNN"""
 import gym
-import torch
+import torch as th
+from torch import nn, flatten
 from torch.nn import Linear
 from torch.nn.functional import relu
 from torch_geometric.nn import GCNConv
@@ -9,15 +10,20 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 class GCNN(BaseFeaturesExtractor):
     def __init__(self, obs_space: gym.spaces.Box, feature_dim = 1):
         super(GCNN, self).__init__(obs_space, feature_dim)
-        shape = obs_space.shape
+        depth, n_qubits, features = obs_space.shape
+        n_flatten = depth * n_qubits * features * 20
+        self.gcn1 = GCNConv(1, 20)
 
-        self.gcn1 = GCNConv(9, 64)
-        self.gcn2 = GCNConv(64, 64)
-        self.dense1 = Linear(64, feature_dim)
+        # Compute shape by doing one forward pass
+        
+        self.linear = nn.Sequential(
+            nn.Linear(n_flatten, 200),
+            nn.ReLU(),
+            nn.Linear(200, 1),
+        )
 
     def forward(self, x, edge_index):
         x = self.gcn1(x, edge_index)
         x = relu(x)
-        x = self.gcn2(x, edge_index)
-        x = relu(x)
-        return self.dense1(x)
+        x = flatten(x, start_dim = 1)
+        return self.linear(x)
